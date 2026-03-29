@@ -1,0 +1,102 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Nice Answer{% endblock %}</title>
+
+  <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+</head>
+
+<body class="d-flex flex-column min-vh-100 bg-light">
+  <header class="navbar navbar-expand-lg navbar-light border-bottom mb-4 py-3">
+    <div class="container align-items-center">
+      <a class="navbar-brand d-flex align-items-center gap-2 fs-3 fw-bold text-dark" href="/">
+        <img src="{% static 'img/favicon.ico' %}" alt="Logo" width="32" height="32">
+        Nice Answer
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <form class="mx-auto w-50">
+          <input class="form-control rounded-pill" type="search" placeholder="Search" aria-label="Search">
+        </form>
+
+        <div class="d-flex align-items-center gap-4 ms-lg-auto mt-3 mt-lg-0">
+          {% block user_panel %}
+          <a href="/ask/" class="btn btn-success fw-bold">ASK</a>
+
+          <div class="d-flex align-items-center gap-2">
+            <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="40" height="40" class="border object-fit-cover">
+            <div class="d-flex flex-column lh-sm">
+              <span class="fw-bold text-dark">ManInTheCoat</span>
+              <div>
+                <a href="/profile/" class="text-decoration-none small">settings</a>
+                <a href="/logout/" class="text-decoration-none small ms-2">log out</a>
+              </div>
+            </div>
+          </div>
+          {% endblock %}
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <div class="container flex-grow-1">
+    <div class="row">
+
+      <main class="col-lg-8 col-md-12 mb-4">
+        {% block content %}
+
+        {% endblock %}
+      </main>
+
+      <aside class="col-lg-4 col-md-12 mb-4 ps-lg-5">
+
+        <div class="mb-4">
+          <h4 class="fw-bold mb-3">Popular Tags</h4>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="#" class="text-decoration-none text-dark">perl</a>
+            <a href="#" class="text-decoration-none text-danger fw-bold fs-5">python</a>
+            <a href="#" class="text-decoration-none text-dark">TechnoPark</a>
+            <a href="#" class="text-decoration-none text-danger fw-bold fs-5">MySQL</a>
+            <a href="#" class="text-decoration-none text-success fw-bold">django</a>
+            <a href="#" class="text-decoration-none text-dark">Mail.Ru</a>
+            <a href="#" class="text-decoration-none text-dark">Voloshin</a>
+            <a href="#" class="text-decoration-none text-warning">Firefox</a>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="fw-bold mb-3">Best Members</h4>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="#" class="text-decoration-none">Mr. Freeman</a></li>
+            <li class="mb-2"><a href="#" class="text-decoration-none">Dr. House</a></li>
+            <li class="mb-2"><a href="#" class="text-decoration-none">Bender</a></li>
+            <li class="mb-2"><a href="#" class="text-decoration-none">Queen Victoria</a></li>
+            <li><a href="#" class="text-decoration-none">V. Pupkin</a></li>
+          </ul>
+        </div>
+
+      </aside>
+
+    </div>
+  </div>
+
+  <footer class="bg-dark text-white text-center py-3">
+    <div class="container">
+      <p>© 2026 Nice Answer. Garanin Erofey</p>
+    </div>
+  </footer>
+
+  <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+
+</html>
