@@ -7,11 +7,11 @@
 {% block content %}
 <div class="card mb-4 shadow-sm border-0 bg-white">
   <div class="card-body">
-    <div class="row">
+    <div class="row flex-nowrap">
 
-      <div class="col-md-2 col-sm-3 text-center mb-3">
+      <div class="col-auto text-center pe-2 pe-md-3">
         <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="80" height="80"
-          class="border mb-3 object-fit-cover">
+          class="border mb-3 object-fit-cover rounded">
         <div>
           <div class="d-inline-flex border border-secondary rounded-1 overflow-hidden">
             <div class="px-2 d-flex align-items-center fw-bold fs-5">5</div>
@@ -23,7 +23,7 @@
         </div>
       </div>
 
-      <div class="col-md-10 col-sm-9">
+      <div class="col overflow-hidden">
         <h3 class="card-title fw-bold mb-3">How to build a moon park?</h3>
         <p class="card-text fs-5 mb-3">
           Guys, I have trouble with a moon park. Can't find the black-jack module! I've been trying to set up the
@@ -31,13 +31,12 @@
           section starts. Does anyone have a blueprint or a link to the official Bender repository?
         </p>
         <div class="d-flex align-items-center gap-2 flex-wrap">
-          <span class="fw-bold">answer (2)</span>
           <span class="text-muted ms-2">Tags:</span>
           <a href="#" class="badge bg-light text-primary border text-decoration-none">black-jack</a>
           <a href="#" class="badge bg-light text-primary border text-decoration-none">bender</a>
         </div>
 
-        <div class="small text-muted text-end">
+        <div class="small text-muted text-end mt-1">
           asked 2 hours ago by <a href="#" class="text-decoration-none fw-bold text-dark">Dr. House</a>
         </div>
       </div>
@@ -52,11 +51,11 @@
 
 <div class="card mb-3 shadow-sm border-0 bg-white">
   <div class="card-body">
-    <div class="row">
+    <div class="row flex-nowrap">
 
-      <div class="col-md-2 col-sm-3 text-center">
+      <div class="col-auto text-center pe-2 pe-md-3">
         <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="60" height="60"
-          class="border mb-3 object-fit-cover">
+          class="border mb-3 object-fit-cover rounded">
         <div>
           <div class="d-inline-flex border border-success rounded-1 overflow-hidden mb-3">
             <div class="px-2 d-flex align-items-center fw-bold fs-5 text-success">12</div>
@@ -68,7 +67,7 @@
         </div>
       </div>
 
-      <div class="col-md-10 col-sm-9 d-flex flex-column">
+      <div class="col overflow-hidden d-flex flex-column">
         <p class="card-text mb-3">
           You are looking in the wrong place! The black-jack module was deprecated in version 2.0. Now you need to
           import the `theme-park` library and call `build_with_blackjack()`.
@@ -89,11 +88,11 @@
 
 <div class="card mb-3 shadow-sm border-0 bg-white">
   <div class="card-body">
-    <div class="row">
+    <div class="row flex-nowrap">
 
-      <div class="col-md-2 col-sm-3 text-center">
+      <div class="col-auto text-center pe-2 pe-md-3">
         <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="60" height="60"
-          class="border mb-3 object-fit-cover">
+          class="border mb-3 object-fit-cover rounded">
         <div>
           <div class="d-inline-flex border border-danger rounded-1 overflow-hidden mb-3">
             <div class="px-2 d-flex align-items-center fw-bold fs-5 text-danger">-3</div>
@@ -105,7 +104,7 @@
         </div>
       </div>
 
-      <div class="col-md-10 col-sm-9 d-flex flex-column">
+      <div class="col overflow-hidden d-flex flex-column">
         <p class="card-text mb-3">
           Just use jQuery.
         </p>
