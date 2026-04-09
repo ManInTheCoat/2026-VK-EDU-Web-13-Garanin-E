@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "core/base.html" %}
 {% load static %}
 
 {% block title %}Log In - Nice Answer{% endblock %}
 
 {% block user_panel %}
-<a href="/login/" class="text-decoration-none fw-bold text-dark">Log In</a>
-<a href="/signup/" class="text-decoration-none text-secondary">Sign Up</a>
+<a href="{% url 'login' %}" class="text-decoration-none fw-bold text-dark">Log In</a>
+<a href="{% url 'signup' %}" class="text-decoration-none text-secondary">Sign Up</a>
 {% endblock %}
 
 {% block content %}
@@ -31,7 +31,7 @@
 
       <div class="d-flex justify-content-between align-items-center mb-5">
         <button type="submit" class="btn btn-success fw-bold px-4">Log In</button>
-        <a href="/signup/" class="text-decoration-none">Create an account</a>
+        <a href="{% url 'signup' %}" class="text-decoration-none">Create an account</a>
       </div>
     </form>
 

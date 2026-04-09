@@ -1,0 +1,63 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}{{ question.title }} - Nice Answer{% endblock %}
+
+{% block content %}
+<div class="card mb-4 shadow-sm border-0 bg-white">
+  <div class="card-body">
+    <div class="row flex-nowrap">
+
+      <div class="col-auto text-center pe-2 pe-md-3">
+        <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="80" height="80"
+          class="border mb-3 object-fit-cover rounded">
+        <div>
+          <div class="d-inline-flex border border-secondary rounded-1 overflow-hidden">
+            <div class="px-2 d-flex align-items-center fw-bold fs-5">5</div>
+            <div class="d-flex flex-column border-start border-secondary px-1 py-1">
+              <a href="#" class="text-secondary text-decoration-none lh-1">&#9650;</a>
+              <a href="#" class="text-secondary text-decoration-none lh-1">&#9660;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col overflow-hidden">
+        <h3 class="card-title fw-bold mb-3">{{ question.title }}</h3>
+        <p class="card-text fs-5 mb-3">{{ question.text }}</p>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="text-muted ms-2">Tags:</span>
+          {% for tag in question.tags %}
+          <a href="{% url 'tag' tag %}" class="badge bg-light text-primary border text-decoration-none">{{ tag }}</a>
+          {% endfor %}
+        </div>
+
+        <div class="small text-muted text-end mt-1">
+          asked 2 hours ago by <a href="#" class="text-decoration-none fw-bold text-dark">Dr. House</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<hr>
+<h4 class="fw-bold mb-4">3 Answers</h4>
+
+{% for answer in answers %}
+  {% include "questions/answer_card.html" %}
+{% endfor %}
+
+{% include "questions/pagination.html" with page_obj=answers %}
+
+<hr>
+
+<div class="mb-4">
+  <h4 class="fw-bold mb-3">Your Answer</h4>
+  <form>
+    <textarea class="form-control mb-3" rows="5" placeholder="Enter your answer here"></textarea>
+    <button type="submit" class="btn btn-success fw-bold px-3">Answer</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}
+{% if tag_name %}Tag: {{ tag_name }}{% else %}New Questions{% endif %} - Nice Answer
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-baseline gap-3">
+  <h2 class="fw-bold">{% if tag_name %}Tag: {{ tag_name }}{% else %}New Questions{% endif %}</h2>
+  <a href="{% url 'hot' %}" class="text-decoration-none">Hot Questions</a>
+</div>
+
+{% for question in questions %}
+{% include "questions/question_card.html" %}
+{% endfor %}
+
+{% include "questions/pagination.html" with page_obj=questions %}
+
+{% endblock %}
