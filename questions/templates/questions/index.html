@@ -12,9 +12,9 @@
 </div>
 
 {% for question in questions %}
-{% include "questions/question_card.html" %}
+{% include "questions/components/question_card.html" %}
 {% endfor %}
 
-{% include "questions/pagination.html" with page_obj=questions %}
+{% include "questions/components/pagination.html" with page_obj=questions %}
 
 {% endblock %}

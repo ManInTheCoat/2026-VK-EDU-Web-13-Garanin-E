@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="row justify-content-center mt-5">
-  <div class="col-lg-4 col-md-6 col-sm-8">
+  <div class="col-xl-5 col-lg-6 col-md-9 col-12">
 
     <h2 class="fw-bold mb-4 text-center">Log In</h2>
 
@@ -29,8 +29,8 @@
         <input type="password" class="form-control" id="passwordInput" placeholder="Enter your password">
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mb-5">
-        <button type="submit" class="btn btn-success fw-bold px-4">Log In</button>
+      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mb-5 gap-3">
+        <button type="submit" class="btn btn-success fw-bold px-5">Log In</button>
         <a href="{% url 'signup' %}" class="text-decoration-none">Create an account</a>
       </div>
     </form>
