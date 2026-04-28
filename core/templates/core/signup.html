@@ -1,16 +1,16 @@
-{% extends "base.html" %}
+{% extends "core/base.html" %}
 {% load static %}
 
 {% block title %}Sign Up - Nice Answer{% endblock %}
 
 {% block user_panel %}
-<a href="/login/" class="text-decoration-none text-secondary">Log In</a>
-<a href="/signup/" class="text-decoration-none fw-bold text-dark">Sign Up</a>
+<a href="{% url 'login' %}" class="text-decoration-none text-secondary">Log In</a>
+<a href="{% url 'signup' %}" class="text-decoration-none fw-bold text-dark">Sign Up</a>
 {% endblock %}
 
 {% block content %}
 <div class="row justify-content-center mt-4">
-  <div class="col-lg-5 col-md-7 col-sm-9">
+  <div class="col-xl-5 col-lg-6 col-md-9 col-sm-12">
 
     <h2 class="fw-bold mb-4 text-center">Registration</h2>
 
@@ -22,7 +22,8 @@
 
       <div class="mb-3">
         <label for="emailInput" class="form-label fw-bold">Email</label>
-        <input type="email" class="form-control is-invalid" id="emailInput" placeholder="Enter your email" value="Lorem Ipsum">
+        <input type="email" class="form-control is-invalid" id="emailInput" placeholder="Enter your email"
+          value="Lorem Ipsum">
 
         <div class="invalid-feedback">
           Invalid email address. Please check the input field.
@@ -45,13 +46,14 @@
       </div>
 
       <div class="mb-4">
-        <label for="avatarInput" class="form-label fw-bold">Profile picture <span class="text-muted fw-normal">(optional)</span></label>
+        <label for="avatarInput" class="form-label fw-bold">Profile picture <span
+            class="text-muted fw-normal">(optional)</span></label>
         <input class="form-control" type="file" id="avatarInput" accept="image/*">
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mb-5">
+      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mb-5 gap-3">
         <button type="submit" class="btn btn-success fw-bold px-4">Register</button>
-        <a href="/login/" class="text-decoration-none">Already have an account?</a>
+        <a href="{% url 'signup' %}" class="text-decoration-none">Already have an account?</a>
       </div>
     </form>
 

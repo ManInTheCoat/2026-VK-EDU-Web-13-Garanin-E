@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "core/base.html" %}
 {% load static %}
 
 {% block title %}Ask a Question - Nice Answer{% endblock %}
 
 {% block content %}
 <div class="row">
-  <div class="col-lg-10 col-md-10">
+  <div class="col-12">
 
     <h2 class="fw-bold mb-4">Ask a Question</h2>
 
@@ -16,7 +16,8 @@
     <form>
       <div class="mb-4">
         <label for="titleInput" class="form-label fw-bold">Title</label>
-        <input type="text" class="form-control is-invalid" id="titleInput" placeholder="e.g. How to build a moon park?" value="How to" maxlength="150">
+        <input type="text" class="form-control is-invalid" id="titleInput" placeholder="e.g. How to build a moon park?"
+          value="How to" maxlength="150">
 
         <div class="invalid-feedback">
           The title is too short. It should be at least 15 characters.
