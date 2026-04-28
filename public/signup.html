@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sign Up - Nice Answer{% endblock %}
+
+{% block user_panel %}
+<a href="/login/" class="text-decoration-none text-secondary">Log In</a>
+<a href="/signup/" class="text-decoration-none fw-bold text-dark">Sign Up</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-lg-5 col-md-7 col-sm-9">
+
+    <h2 class="fw-bold mb-4 text-center">Registration</h2>
+
+    <form>
+      <div class="mb-3">
+        <label for="loginInput" class="form-label fw-bold">Login</label>
+        <input type="text" class="form-control" id="loginInput" placeholder="Enter your login">
+      </div>
+
+      <div class="mb-3">
+        <label for="emailInput" class="form-label fw-bold">Email</label>
+        <input type="email" class="form-control is-invalid" id="emailInput" placeholder="Enter your email" value="Lorem Ipsum">
+
+        <div class="invalid-feedback">
+          Invalid email address. Please check the input field.
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="nicknameInput" class="form-label fw-bold">Nickname</label>
+        <input type="text" class="form-control" id="nicknameInput" placeholder="Enter your nickname">
+      </div>
+
+      <div class="mb-3">
+        <label for="passwordInput" class="form-label fw-bold">Password</label>
+        <input type="password" class="form-control" id="passwordInput" placeholder="Create a strong password">
+      </div>
+
+      <div class="mb-3">
+        <label for="passwordRepeatInput" class="form-label fw-bold">Repeat password</label>
+        <input type="password" class="form-control" id="passwordRepeatInput" placeholder="Repeat your password">
+      </div>
+
+      <div class="mb-4">
+        <label for="avatarInput" class="form-label fw-bold">Profile picture <span class="text-muted fw-normal">(optional)</span></label>
+        <input class="form-control" type="file" id="avatarInput" accept="image/*">
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-5">
+        <button type="submit" class="btn btn-success fw-bold px-4">Register</button>
+        <a href="/login/" class="text-decoration-none">Already have an account?</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Ask a Question - Nice Answer{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-lg-10 col-md-10">
+
+    <h2 class="fw-bold mb-4">Ask a Question</h2>
+
+    <div class="alert alert-danger mb-4" role="alert">
+      Please check the accuracy of the entered data.
+    </div>
+
+    <form>
+      <div class="mb-4">
+        <label for="titleInput" class="form-label fw-bold">Title</label>
+        <input type="text" class="form-control is-invalid" id="titleInput" placeholder="e.g. How to build a moon park?" value="How to" maxlength="150">
+
+        <div class="invalid-feedback">
+          The title is too short. It should be at least 15 characters.
+        </div>
+
+        <div class="form-text">
+          Briefly and clearly describe the essence of your problem (up to 150 characters).
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label for="textInput" class="form-label fw-bold">Text</label>
+        <textarea class="form-control" id="textInput" rows="10" placeholder="Explain your problem in detail"></textarea>
+        <div class="form-text">
+          Include all the information that someone would need in order to answer your question.
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label for="tagsInput" class="form-label fw-bold">Tags</label>
+        <input type="text" class="form-control" id="tagsInput" placeholder="e.g. black-jack, bender">
+        <div class="form-text">
+          Add up to 3 tags to describe your question. Separate the tags with spaces or commas.
+        </div>
+      </div>
+
+      <div class="mt-5 mb-5">
+        <button type="submit" class="btn btn-success fw-bold px-4 py-2">Publish Question</button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
