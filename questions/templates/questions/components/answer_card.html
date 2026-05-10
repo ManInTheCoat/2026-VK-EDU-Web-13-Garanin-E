@@ -5,8 +5,13 @@
         <div class="row flex-nowrap">
 
             <div class="col-auto text-center pe-2 pe-md-3">
+                {% if answer.author.profile.avatar %}
+                    <img src="{{ answer.author.profile.avatar.url }}" alt="Avatar" width="60" height="60"
+                        class="border mb-3 object-fit-cover rounded">
+                {% else %}
                 <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="60" height="60"
                     class="border mb-3 object-fit-cover rounded">
+                {% endif %}
                 <div>
                     <div class="d-inline-flex border border-success rounded-1 overflow-hidden mb-3">
                         <div class="px-2 d-flex align-items-center fw-bold fs-5 text-success">{{ answer.rating|default:"0" }}</div>

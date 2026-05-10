@@ -24,7 +24,8 @@ class Command(BaseCommand):
         answers_count = ratio * 100
         likes_count = ratio * 200
 
-        BATCH_SIZE = 10000
+        BATCH_SIZE_HEAVY = 100
+        BATCH_SIZE_LIGHT = 1000
 
         self.stdout.write(self.style.SUCCESS(f'Начинаем генерацию данных (ratio={ratio})'))
 
@@ -34,13 +35,13 @@ class Command(BaseCommand):
             username = f"{fake.user_name()}_{i}_{random.randint(1, 9999)}"
             users_to_create.append(User(username=username, email=fake.email(), password='fake_password'))
 
-        User.objects.bulk_create(users_to_create, batch_size=BATCH_SIZE)
+        User.objects.bulk_create(users_to_create, batch_size=BATCH_SIZE_HEAVY)
 
         user_ids = list(User.objects.values_list('id', flat=True))
 
         self.stdout.write('Создание профилей...')
         profiles_to_create = [Profile(user_id=u_id) for u_id in user_ids]
-        Profile.objects.bulk_create(profiles_to_create, batch_size=BATCH_SIZE)
+        Profile.objects.bulk_create(profiles_to_create, batch_size=BATCH_SIZE_LIGHT)
 
         self.stdout.write('Создание тегов...')
         tags_to_create = []
@@ -48,7 +49,7 @@ class Command(BaseCommand):
             tag_name = f"{fake.word()}_{i}_{random.randint(1, 9999)}"
             tags_to_create.append(Tag(name=tag_name[:50]))
 
-        Tag.objects.bulk_create(tags_to_create, batch_size=BATCH_SIZE)
+        Tag.objects.bulk_create(tags_to_create, batch_size=BATCH_SIZE_LIGHT)
         tag_ids = list(Tag.objects.values_list('id', flat=True))
 
         self.stdout.write('Создание вопросов...')
@@ -61,7 +62,7 @@ class Command(BaseCommand):
                     author_id=random.choice(user_ids)
                 )
             )
-        Question.objects.bulk_create(questions_to_create, batch_size=BATCH_SIZE)
+        Question.objects.bulk_create(questions_to_create, batch_size=BATCH_SIZE_HEAVY)
         question_ids = list(Question.objects.values_list('id', flat=True))
 
         self.stdout.write('Привязка тегов к вопросам...')
@@ -71,7 +72,7 @@ class Command(BaseCommand):
             selected_tags = random.sample(tag_ids, random.randint(1, 3))
             for t_id in selected_tags:
                 question_tags_to_create.append(QuestionTag(question_id = q_id, tag_id = t_id))
-        QuestionTag.objects.bulk_create(question_tags_to_create, batch_size=BATCH_SIZE)
+        QuestionTag.objects.bulk_create(question_tags_to_create, batch_size=BATCH_SIZE_LIGHT)
 
         self.stdout.write('Создание ответов...')
         answers_to_create = []
@@ -84,7 +85,7 @@ class Command(BaseCommand):
                     is_correct=random.choice([True, False, False, False])
                 )
             )
-        Answer.objects.bulk_create(answers_to_create, batch_size=BATCH_SIZE)
+        Answer.objects.bulk_create(answers_to_create, batch_size=BATCH_SIZE_HEAVY)
         answer_ids = list(Answer.objects.values_list('id', flat=True))
 
         self.stdout.write('Создание оценок для вопросов...')
@@ -93,7 +94,7 @@ class Command(BaseCommand):
             unique_question_likes.add((random.choice(user_ids), random.choice(question_ids)))
 
         q_likes = [QuestionLike(user_id=u, question_id=q, is_like=random.choice([True, False])) for u, q in unique_question_likes]
-        QuestionLike.objects.bulk_create(q_likes, batch_size=BATCH_SIZE)
+        QuestionLike.objects.bulk_create(q_likes, batch_size=BATCH_SIZE_LIGHT)
 
         self.stdout.write('Создание оценок для ответов...')
         unique_answer_likes = set()
@@ -101,34 +102,59 @@ class Command(BaseCommand):
             unique_answer_likes.add((random.choice(user_ids), random.choice(answer_ids)))
 
         a_likes = [AnswerLike(user_id=u, answer_id=a, is_like=random.choice([True, False])) for u, a in unique_answer_likes]
-        AnswerLike.objects.bulk_create(a_likes, batch_size=BATCH_SIZE)
+        AnswerLike.objects.bulk_create(a_likes, batch_size=BATCH_SIZE_LIGHT)
 
         self.stdout.write('Пересчет рейтингов для вопросов и ответов...')
 
-        q_likes = QuestionLike.objects.filter(question_id=OuterRef('pk'), is_like=True).values('question_id').annotate(cnt=Count('pk')).values('cnt')
-        q_dislikes = QuestionLike.objects.filter(question_id=OuterRef('pk'), is_like=False).values('question_id').annotate(cnt=Count('pk')).values('cnt')
+        q_likes = QuestionLike.objects.filter(question_id=OuterRef('pk'), is_like=True, is_active=True).values('question_id').annotate(cnt=Count('pk')).values('cnt')
+        q_dislikes = QuestionLike.objects.filter(question_id=OuterRef('pk'), is_like=False, is_active=True).values('question_id').annotate(cnt=Count('pk')).values('cnt')
         Question.objects.update(
             rating=Coalesce(Subquery(q_likes, output_field=IntegerField()), 0) -
                    Coalesce(Subquery(q_dislikes, output_field=IntegerField()), 0)
         )
 
-        a_likes = AnswerLike.objects.filter(answer_id=OuterRef('pk'), is_like=True).values('answer_id').annotate(cnt=Count('pk')).values('cnt')
-        a_dislikes = AnswerLike.objects.filter(answer_id=OuterRef('pk'), is_like=False).values('answer_id').annotate(cnt=Count('pk')).values('cnt')
+        a_likes = AnswerLike.objects.filter(answer_id=OuterRef('pk'), is_like=True, is_active=True).values('answer_id').annotate(cnt=Count('pk')).values('cnt')
+        a_dislikes = AnswerLike.objects.filter(answer_id=OuterRef('pk'), is_like=False, is_active=True).values('answer_id').annotate(cnt=Count('pk')).values('cnt')
         Answer.objects.update(
             rating=Coalesce(Subquery(a_likes, output_field=IntegerField()), 0) -
                    Coalesce(Subquery(a_dislikes, output_field=IntegerField()), 0)
         )
 
-        self.stdout.write('Синхронизация счетчиков ответов...')
+        self.stdout.write('Синхронизация счетчиков ответов для вопросов...')
 
         ans_counts = Answer.objects.filter(
-            question_id=OuterRef('pk')
+            question_id=OuterRef('pk'),
+            is_active=True
         ).values('question_id').annotate(
             cnt=Count('pk')
         ).values('cnt')
 
         Question.objects.update(
             answers_count=Coalesce(Subquery(ans_counts, output_field=IntegerField()), 0)
+        )
+
+        self.stdout.write('Синхронизация счетчиков ответов для профилей...')
+        user_answers_counts = Answer.objects.filter(
+            author_id=OuterRef('user_id'),
+            is_active=True
+        ).values('author_id').annotate(
+            cnt=Count('pk')
+        ).values('cnt')
+
+        Profile.objects.update(
+            answers_count=Coalesce(Subquery(user_answers_counts, output_field=IntegerField()), 0)
+        )
+
+        self.stdout.write('Синхронизация счетчиков вопросов для тегов...')
+        tags_qs = QuestionTag.objects.filter(
+            tag_id=OuterRef('pk'),
+            question__is_active=True
+        ).values('tag_id').annotate(
+            cnt=Count('question_id')
+        ).values('cnt')
+
+        Tag.objects.update(
+            questions_count=Coalesce(Subquery(tags_qs, output_field=IntegerField()), 0)
         )
 
         self.stdout.write(self.style.SUCCESS('База данных успешно заполнена!'))

@@ -10,8 +10,13 @@
         <div class="row flex-nowrap">
 
             <div class="col-auto text-center pe-2 pe-md-3">
+                {% if question.author.profile.avatar %}
+                    <img src="{{ question.author.profile.avatar.url }}" alt="Avatar" width="80" height="80"
+                        class="border mb-3 object-fit-cover rounded">
+                {% else %}
                 <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="80" height="80"
                     class="border mb-3 object-fit-cover rounded">
+                {% endif %}
                 <div>
                     <div class="d-inline-flex border border-secondary rounded-1 overflow-hidden">
                         <div class="px-2 d-flex align-items-center fw-bold fs-5">{{ question.rating|default:"0" }}</div>

@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.db.models import F
 from questions.models import Tag
 
 def sidebar_data(request):
@@ -18,7 +19,7 @@ def sidebar_data(request):
             'css': css_classes[i % len(css_classes)]
         })
 
-    best_members_qs = User.objects.select_related('profile').order_by('-profile__answers_count')[:5]
+    best_members_qs = User.objects.select_related('profile').order_by(F('profile__answers_count').desc(nulls_last=True))[:5]
 
     best_members = []
     for user in best_members_qs:
