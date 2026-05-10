@@ -1,24 +1,34 @@
+from django.contrib.auth.models import User
+from django.db.models import F
+from questions.models import Tag
+
 def sidebar_data(request):
-  popular_tags = [
-    {'name': 'perl', 'css': 'text-dark'},
-    {'name': 'python', 'css': 'text-danger fw-bold fs-5'},
-    {'name': 'TechnoPark', 'css': 'text-dark'},
-    {'name': 'MySQL', 'css': 'text-danger fw-bold fs-5'},
-    {'name': 'django', 'css': 'text-success fw-bold'},
-    {'name': 'Mail.Ru', 'css': 'text-dark'},
-    {'name': 'Voloshin', 'css': 'text-dark'},
-    {'name': 'Firefox', 'css': 'text-warning'},
-  ]
+    tags_qs = Tag.objects.order_by('-questions_count')[:8]
 
-  best_members = [
-    'Mr. Freeman',
-    'Dr. House',
-    'Bender',
-    'Queen Victoria',
-    'V. Pupkin'
-  ]
+    css_classes = [
+        'text-dark',
+        'text-danger fw-bold fs-5',
+        'text-success fw-bold',
+        'text-warning'
+    ]
 
-  return {
-    'popular_tags': popular_tags,
-    'best_members': best_members
-  }
+    popular_tags = []
+    for i, tag in enumerate(tags_qs):
+        popular_tags.append({
+            'name': tag.name,
+            'css': css_classes[i % len(css_classes)]
+        })
+
+    best_members_qs = User.objects.select_related('profile').order_by(F('profile__answers_count').desc(nulls_last=True))[:5]
+
+    best_members = []
+    for user in best_members_qs:
+        if hasattr(user, 'profile') and user.profile.nickname:
+            best_members.append(user.profile.nickname)
+        else:
+            best_members.append(user.username)
+
+    return {
+        'popular_tags': popular_tags,
+        'best_members': best_members
+    }
