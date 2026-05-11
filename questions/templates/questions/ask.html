@@ -9,19 +9,33 @@
 
         <h2 class="fw-bold mb-4">Ask a Question</h2>
 
-        <div class="alert alert-danger mb-4" role="alert">
-            Please check the accuracy of the entered data.
-        </div>
+        <form method="POST" action="{% url 'ask' %}">
+            {% csrf_token %}
 
-        <form>
+            {% if form.errors %}
+            <div class="alert alert-danger mb-4" role="alert">
+                Please check the accuracy of the entered data.
+                {% if form.non_field_errors %}
+                    <br>
+                    {% for error in form.non_field_errors %}
+                        <small>{{ error }}</small><br>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            {% endif %}
+
             <div class="mb-4">
-                <label for="titleInput" class="form-label fw-bold">Title</label>
-                <input type="text" class="form-control is-invalid" id="titleInput"
-                    placeholder="e.g. How to build a moon park?" value="How to" maxlength="150">
+                <label for="{{ form.title.id_for_label }}" class="form-label fw-bold">Title</label>
+                <input type="text" name="{{ form.title.name }}" class="form-control {% if form.title.errors %}is-invalid{% endif %}" id="{{ form.title.id_for_label }}"
+                    placeholder="e.g. How to build a moon park?" value="{{ form.title.value|default_if_none:'' }}" maxlength="150">
 
+                {% if form.title.errors %}
                 <div class="invalid-feedback">
-                    The title is too short. It should be at least 15 characters.
+                    {% for error in form.title.errors %}
+                        {{ error }}<br>
+                    {% endfor %}
                 </div>
+                {% endif %}
 
                 <div class="form-text">
                     Briefly and clearly describe the essence of your problem (up to 150 characters).
@@ -29,17 +43,35 @@
             </div>
 
             <div class="mb-4">
-                <label for="textInput" class="form-label fw-bold">Text</label>
-                <textarea class="form-control" id="textInput" rows="10"
-                    placeholder="Explain your problem in detail"></textarea>
+                <label for="{{ form.text.id_for_label }}" class="form-label fw-bold">Text</label>
+                <textarea name="{{ form.text.name }}" class="form-control {% if form.text.errors %}is-invalid{% endif %}" id="{{ form.text.id_for_label }}" rows="10"
+                    placeholder="Explain your problem in detail">{{ form.text.value|default_if_none:'' }}</textarea>
+
+                {% if form.text.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.text.errors %}
+                        {{ error }}<br>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
                 <div class="form-text">
                     Include all the information that someone would need in order to answer your question.
                 </div>
             </div>
 
             <div class="mb-4">
-                <label for="tagsInput" class="form-label fw-bold">Tags</label>
-                <input type="text" class="form-control" id="tagsInput" placeholder="e.g. black-jack, bender">
+                <label for="{{ form.tags_input.id_for_label }}" class="form-label fw-bold">Tags</label>
+                <input type="text" name="{{ form.tags_input.name }}" class="form-control {% if form.tags_input.errors %}is-invalid{% endif %}" id="{{ form.tags_input.id_for_label }}" placeholder="e.g. black-jack, bender" value="{{ form.tags_input.value|default_if_none:'' }}">
+
+                {% if form.tags_input.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.tags_input.errors %}
+                        {{ error }}<br>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
                 <div class="form-text">
                     Add up to 3 tags to describe your question. Separate the tags with spaces or commas.
                 </div>
