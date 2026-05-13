@@ -42,7 +42,7 @@
                         {% endif %}
                     {% endif %}
 
-                    <div class="text-muted">
+                    <div class="text-muted" title="{{ answer.created_at|date:'d.m.Y H:i:s' }}">
                         answered {% language 'en' %}{{ answer.created_at|timesince }}{% endlanguage %} ago by <span class="fw-bold text-dark">{{ answer.author.profile.nickname|default:answer.author.username }}</span>
                     </div>
                 </div>

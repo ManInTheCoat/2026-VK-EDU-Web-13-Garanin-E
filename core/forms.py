@@ -2,10 +2,10 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from core.models import Profile
+from django.contrib.auth.forms import AuthenticationForm
 
-class LoginForm(forms.Form):
-    username = forms.CharField(label='Login', max_length=150)
-    password = forms.CharField(widget=forms.PasswordInput, label='Password')
+class LoginForm(AuthenticationForm):
+    pass
 
 class SignupForm(forms.ModelForm):
     nickname = forms.CharField(label='Nickname', required=True)

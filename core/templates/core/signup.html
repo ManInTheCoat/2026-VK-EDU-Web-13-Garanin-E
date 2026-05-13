@@ -23,6 +23,8 @@
             <div class="mb-3">
                 <label for="{{ form.username.id_for_label }}" class="form-label fw-bold">Login</label>
                 <input type="text" name="{{ form.username.name }}" class="form-control {% if form.username.errors %}is-invalid{% endif %}" id="{{ form.username.id_for_label }}" placeholder="Enter your login" value="{{ form.username.value|default_if_none:'' }}">
+                <div class="form-text">Used only for logging in. It will not be visible to others.</div>
+
                 {% if form.username.errors %}
                     <div class="invalid-feedback">
                         {% for error in form.username.errors %}
@@ -47,6 +49,8 @@
             <div class="mb-3">
                 <label for="{{ form.nickname.id_for_label }}" class="form-label fw-bold">Nickname</label>
                 <input type="text" name="{{ form.nickname.name }}" class="form-control {% if form.nickname.errors %}is-invalid{% endif %}" id="{{ form.nickname.id_for_label }}" placeholder="Enter your nickname" value="{{ form.nickname.value|default_if_none:'' }}">
+                <div class="form-text">This name will be displayed to other users on the platform.</div>
+
                 {% if form.nickname.errors %}
                     <div class="invalid-feedback">
                         {% for error in form.nickname.errors %}

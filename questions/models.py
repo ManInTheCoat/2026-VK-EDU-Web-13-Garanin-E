@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.urls import reverse
-from .managers import TagManager, QuestionManager
+from questions.managers import TagManager, QuestionManager
 
 class DefaultModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='Дата создания')

@@ -1,82 +1,93 @@
-import math
 from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
-from django.contrib.auth.decorators import login_required
+from django.urls import reverse, reverse_lazy
 
-from .models import Question, Tag
-from .utils import paginate
-from .forms import QuestionForm, AnswerForm
+from django.views import View
+from django.views.generic import ListView, CreateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-def index(request):
+from questions.models import Question, Tag
+from questions.utils import paginate
+from questions.forms import QuestionForm, AnswerForm
+
+class IndexView(ListView):
     """Список новых вопросов (главная страница)"""
-    questions = Question.objects.get_new()
-    page = paginate(questions, request, per_page=20)
-    return render(request, 'questions/index.html', {'questions': page})
+    template_name = 'questions/index.html'
 
-def hot(request):
+    def get_queryset(self):
+        return Question.objects.get_new()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['questions'] = paginate(self.object_list, self.request, per_page=20)
+        return context
+
+class HotQuestionsView(ListView):
     """Список лучших вопросов"""
-    questions = Question.objects.get_best()
-    page = paginate(questions, request, per_page=20)
-    return render(request, 'questions/index.html', {'questions': page})
+    template_name = 'questions/index.html'
 
-def tag(request, tag_name):
+    def get_queryset(self):
+        return Question.objects.get_best()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['questions'] = paginate(self.object_list, self.request, per_page=20)
+        return context
+
+class TagQuestionsView(ListView):
     """Список вопросов по тегу"""
-    tag_obj = get_object_or_404(Tag, name=tag_name)
-    questions = Question.objects.by_tag(tag_obj.id)
-    page = paginate(questions, request, per_page=20)
-    return render(request, 'questions/index.html', {
-        'questions': page,
-        'tag_name': tag_obj.name
-    })
+    template_name = 'questions/index.html'
 
-def question(request, question_id):
+    def get_queryset(self):
+        self.tag_obj = get_object_or_404(Tag, name=self.kwargs['tag_name'])
+        return Question.objects.by_tag(self.tag_obj.id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tag_name'] = self.tag_obj.name
+        context['questions'] = paginate(self.object_list, self.request, per_page=20)
+        return context
+
+class QuestionDetailView(View):
     """Страница одного вопроса со списком ответов и формой добавления ответа"""
-    one_question = get_object_or_404(Question, pk=question_id, is_active=True)
-    answers = one_question.answers.filter(is_active=True).select_related('author', 'author__profile').order_by('-rating', 'created_at')
 
-    ANSWERS_PER_PAGE = 30
+    def get(self, request, question_id, *args, **kwargs):
+        one_question = get_object_or_404(Question, pk=question_id, is_active=True)
+        answers = one_question.answers.filter(is_active=True).select_related('author', 'author__profile').order_by('-rating', 'created_at')
 
-    if request.method == 'POST':
+        form = AnswerForm()
+
+        return render(request, 'questions/question.html', {
+            'question': one_question,
+            'answers': answers,
+            'form': form,
+        })
+
+    def post(self, request, question_id, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect(f"{reverse('login')}?next={request.path}")
 
+        one_question = get_object_or_404(Question, pk=question_id, is_active=True)
         form = AnswerForm(request.POST)
+
         if form.is_valid():
             answer = form.save(author=request.user, question=one_question)
 
-            ordered_answer_ids = list(
-                one_question.answers.filter(is_active=True)
-                .order_by('-rating', 'created_at')
-                .values_list('id', flat=True)
-            )
-
-            answer_index = ordered_answer_ids.index(answer.id)
-
-            last_page = (answer_index // ANSWERS_PER_PAGE) + 1
-
-            redirect_url = f"{reverse('question', args=[one_question.id])}?page={last_page}#answer-{answer.id}"
+            redirect_url = f"{reverse('question', args=[one_question.id])}#answer-{answer.id}"
             return redirect(redirect_url)
-    else:
-        form = AnswerForm()
 
-    page = paginate(answers, request, per_page=ANSWERS_PER_PAGE)
+        answers = one_question.answers.filter(is_active=True).select_related('author', 'author__profile').order_by('-rating', 'created_at')
 
-    return render(request, 'questions/question.html', {
-        'question': one_question,
-        'answers': page,
-        'form': form,
-    })
+        return render(request, 'questions/question.html', {
+            'question': one_question,
+            'answers': answers,
+            'form': form,
+        })
 
-@login_required(login_url='login')
-def ask(request):
+class AskQuestionView(LoginRequiredMixin, CreateView):
     """Форма создания вопроса"""
-    if request.method == 'POST':
-        form = QuestionForm(request.POST)
-        if form.is_valid():
-            new_question = form.save(author=request.user)
+    template_name = 'questions/ask.html'
+    form_class = QuestionForm
 
-            return redirect('question', question_id=new_question.id)
-    else:
-        form = QuestionForm()
-
-    return render(request, 'questions/ask.html', {'form': form})
+    def form_valid(self, form):
+        new_question = form.save(author=self.request.user)
+        return redirect('question', question_id=new_question.id)

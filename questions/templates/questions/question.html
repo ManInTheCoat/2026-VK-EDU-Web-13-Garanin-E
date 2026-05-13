@@ -33,14 +33,16 @@
                 <p class="card-text fs-5 mb-3">{{ question.text }}</p>
 
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="text-muted ms-2">Tags:</span>
-                    {% for tag in question.tags.all %}
-                    <a href="{% url 'tag' tag.name %}"
-                        class="badge bg-light text-primary border text-decoration-none">{{ tag.name }}</a>
-                    {% endfor %}
+                    {% if question.tags.all %}
+                        <span class="text-muted ms-2">Tags:</span>
+                        {% for tag in question.tags.all %}
+                        <a href="{% url 'tag' tag.name %}"
+                            class="badge bg-light text-primary border text-decoration-none">{{ tag.name }}</a>
+                        {% endfor %}
+                    {% endif %}
                 </div>
 
-                <div class="small text-muted text-end mt-1">
+                <div class="small text-muted text-end mt-1" title="{{ question.created_at|date:'d.m.Y H:i:s' }}">
                     asked {% language 'en' %}{{ question.created_at|timesince }}{% endlanguage %} ago by <span class="fw-bold text-dark">{{ question.author.profile.nickname|default:question.author.username }}</span>
                 </div>
             </div>
@@ -59,8 +61,6 @@
     <p class="mb-0">Пока нет ни одного ответа к этому вопросу. Будьте первым, кто поможет!</p>
 </div>
 {% endfor %}
-
-{% include "questions/components/pagination.html" with page_obj=answers %}
 
 <hr>
 
