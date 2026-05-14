@@ -1,11 +1,28 @@
+import os
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from core.models import Profile
 from django.contrib.auth.forms import AuthenticationForm
 
 class LoginForm(AuthenticationForm):
     pass
+
+def validate_avatar(avatar):
+    if not avatar:
+        return avatar
+
+    max_size_mb = 2
+    if avatar.size > max_size_mb * 1024 * 1024:
+        raise ValidationError(f"Размер файла не должен превышать {max_size_mb} МБ.")
+
+    valid_extensions = ['.jpg', '.jpeg', '.png', '.webp']
+    ext = os.path.splitext(avatar.name)[1].lower()
+    if ext not in valid_extensions:
+        raise ValidationError("Поддерживаются только изображения форматов JPG, PNG или WEBP.")
+
+    return avatar
 
 class SignupForm(forms.ModelForm):
     nickname = forms.CharField(label='Nickname', required=True)
@@ -17,6 +34,9 @@ class SignupForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['username', 'email']
+
+    def clean_avatar(self):
+        return validate_avatar(self.cleaned_data.get('avatar'))
 
     def clean_password(self):
         password = self.cleaned_data.get('password')
@@ -62,6 +82,9 @@ class ProfileForm(forms.ModelForm):
         if self.instance and hasattr(self.instance, 'profile'):
             self.fields['nickname'].initial = self.instance.profile.nickname
             self.fields['avatar'].initial = self.instance.profile.avatar
+
+    def clean_avatar(self):
+        return validate_avatar(self.cleaned_data.get('avatar'))
 
     def save(self, commit=True):
         user = super().save(commit=commit)

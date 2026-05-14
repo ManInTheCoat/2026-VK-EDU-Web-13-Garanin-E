@@ -152,7 +152,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Настройка логирования для отслеживания SQL-запросов
-LOGGING = {
+""" LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
@@ -177,7 +177,7 @@ LOGGING = {
             'propagate': False,
         }
     },
-}
+} """
 
 LOGIN_URL = 'login'
 

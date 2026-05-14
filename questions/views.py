@@ -1,11 +1,13 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.http import JsonResponse
+from django.db import transaction
 
 from django.views import View
 from django.views.generic import ListView, CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from questions.models import Question, Tag
+from questions.models import Question, Answer, Tag, QuestionLike, AnswerLike
 from questions.utils import paginate
 from questions.forms import QuestionForm, AnswerForm
 
@@ -91,3 +93,111 @@ class AskQuestionView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         new_question = form.save(author=self.request.user)
         return redirect('question', question_id=new_question.id)
+
+class QuestionLikeAjaxView(View):
+    """AJAX обработчик лайков/дизлайков для вопросов"""
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Для оценивания необходимо войти в систему.'}, status=401)
+
+        question_id = request.POST.get('question_id')
+        vote_type = request.POST.get('type')
+
+        if vote_type not in ['like', 'dislike']:
+            return JsonResponse({'error': 'Неверный тип оценки.'}, status=400)
+
+        question = get_object_or_404(Question, pk=question_id)
+        is_like = (vote_type == 'like')
+
+        like_obj, created = QuestionLike.objects.get_or_create(
+            user=request.user,
+            question=question,
+            defaults={'is_like': is_like}
+        )
+
+        if not created:
+            if like_obj.is_like == is_like:
+                like_obj.is_active = not like_obj.is_active
+                like_obj.save(update_fields=['is_active'])
+            else:
+                like_obj.is_like = is_like
+                like_obj.is_active = True
+                like_obj.save(update_fields=['is_like', 'is_active'])
+
+        likes = QuestionLike.objects.filter(question=question, is_like=True, is_active=True).count()
+        dislikes = QuestionLike.objects.filter(question=question, is_like=False, is_active=True).count()
+        question.rating = likes - dislikes
+        question.save(update_fields=['rating'])
+
+        return JsonResponse({'rating': question.rating})
+
+
+class AnswerLikeAjaxView(View):
+    """AJAX обработчик лайков/дизлайков для ответов"""
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Для оценивания необходимо войти в систему.'}, status=401)
+
+        answer_id = request.POST.get('answer_id')
+        vote_type = request.POST.get('type')
+
+        if vote_type not in ['like', 'dislike']:
+            return JsonResponse({'error': 'Неверный тип оценки.'}, status=400)
+
+        answer = get_object_or_404(Answer, pk=answer_id)
+        is_like = (vote_type == 'like')
+
+        like_obj, created = AnswerLike.objects.get_or_create(
+            user=request.user,
+            answer=answer,
+            defaults={'is_like': is_like}
+        )
+
+        if not created:
+            if like_obj.is_like == is_like:
+                like_obj.is_active = not like_obj.is_active
+                like_obj.save(update_fields=['is_active'])
+            else:
+                like_obj.is_like = is_like
+                like_obj.is_active = True
+                like_obj.save(update_fields=['is_like', 'is_active'])
+
+        likes = AnswerLike.objects.filter(answer=answer, is_like=True, is_active=True).count()
+        dislikes = AnswerLike.objects.filter(answer=answer, is_like=False, is_active=True).count()
+        answer.rating = likes - dislikes
+        answer.save(update_fields=['rating'])
+
+        return JsonResponse({'rating': answer.rating})
+
+
+class MarkCorrectAnswerAjaxView(View):
+    """AJAX обработчик отметки правильного ответа"""
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Необходимо войти в систему.'}, status=401)
+
+        question_id = request.POST.get('question_id')
+        answer_id = request.POST.get('answer_id')
+
+        question = get_object_or_404(Question, pk=question_id)
+        answer = get_object_or_404(Answer, pk=answer_id)
+
+        if question.author != request.user:
+            return JsonResponse({'error': 'Только автор вопроса может отмечать правильный ответ.'}, status=403)
+
+        if answer.question != question:
+            return JsonResponse({'error': 'Этот ответ не относится к данному вопросу.'}, status=400)
+
+        is_currently_correct = answer.is_correct
+
+        with transaction.atomic():
+            question.answers.update(is_correct=False)
+
+            if not is_currently_correct:
+                answer.is_correct = True
+                answer.save(update_fields=['is_correct'])
+                status_correct = True
+            else:
+                status_correct = False
+
+        return JsonResponse({'is_correct': status_correct, 'answer_id': answer.id})
