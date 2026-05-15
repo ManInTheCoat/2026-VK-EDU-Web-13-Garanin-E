@@ -5,19 +5,21 @@
         <div class="row flex-nowrap">
 
             <div class="col-auto text-center pe-2 pe-md-3">
-                {% if question.author.profile.avatar %}
-                    <img src="{{ question.author.profile.avatar.url }}" alt="Avatar" width="50" height="50"
-                        class="border mb-2 object-fit-cover rounded">
-                {% else %}
-                <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="50" height="50"
+                <img src="{{ question.author.profile.get_avatar }}" alt="Avatar" width="50" height="50"
                     class="border mb-2 object-fit-cover rounded">
-                {% endif %}
                 <div>
-                    <div class="d-inline-flex border border-success rounded-1 overflow-hidden">
-                        <div class="px-2 d-flex align-items-center fw-bold fs-5 text-success">{{ question.rating|default:"0" }}</div>
-                        <div class="d-flex flex-column border-start border-success px-1 py-1">
-                            <a href="#" class="text-success text-decoration-none lh-1">&#9650;</a>
-                            <a href="#" class="text-secondary text-decoration-none lh-1">&#9660;</a>
+                    <div class="d-inline-flex border border-secondary rounded-1 overflow-hidden">
+                        <div class="px-2 d-flex align-items-center fw-bold fs-5 text-secondary">{{ question.rating|default:"0" }}</div>
+                        <div class="d-flex flex-column border-start border-secondary px-1 py-1">
+
+                            {% if user.is_authenticated %}
+                                <a href="#" class="text-secondary text-decoration-none lh-1" title="Like">&#9650;</a>
+                                <a href="#" class="text-secondary text-decoration-none lh-1" title="Dislike">&#9660;</a>
+                            {% else %}
+                                <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9650;</span>
+                                <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9660;</span>
+                            {% endif %}
+
                         </div>
                     </div>
                 </div>
@@ -31,15 +33,18 @@
                 </p>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <a href="{% url 'question' question.id %}" class="text-decoration-none fw-bold">answers ({{ question.answers_count }})</a>
-                    <span class="text-muted ms-2">Tags:</span>
 
-                    {% for tag in question.tags.all %}
-                    <a href="{% url 'tag' tag.name %}"
-                        class="badge bg-light text-primary border text-decoration-none">{{ tag.name }}</a>
-                    {% endfor %}
+                    {% if question.tags.all %}
+                        <span class="text-muted ms-2">Tags:</span>
+
+                        {% for tag in question.tags.all %}
+                        <a href="{% url 'tag' tag.name %}"
+                            class="badge bg-light text-primary border text-decoration-none">{{ tag.name }}</a>
+                        {% endfor %}
+                    {% endif %}
                 </div>
 
-                <div class="small text-muted text-end mt-1">
+                <div class="small text-muted text-end mt-1" title="{{ question.created_at|date:'d.m.Y H:i:s' }}">
                     asked {% language 'en' %}{{ question.created_at|timesince }}{% endlanguage %} ago by <span class="fw-bold text-dark">{{ question.author.profile.nickname|default:question.author.username }}</span>
                 </div>
             </div>

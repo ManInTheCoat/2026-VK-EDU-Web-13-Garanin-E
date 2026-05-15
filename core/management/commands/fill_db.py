@@ -1,4 +1,5 @@
 import random
+import uuid
 from faker import Faker
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
@@ -32,25 +33,28 @@ class Command(BaseCommand):
         self.stdout.write('Создание пользователей...')
         users_to_create = []
         for i in range(users_count):
-            username = f"{fake.user_name()}_{i}_{random.randint(1, 9999)}"
+            unique_suffix = uuid.uuid4().hex[:8]
+            username = f"{fake.user_name()}_{unique_suffix}"
             users_to_create.append(User(username=username, email=fake.email(), password='fake_password'))
 
         User.objects.bulk_create(users_to_create, batch_size=BATCH_SIZE_HEAVY)
 
-        user_ids = list(User.objects.values_list('id', flat=True))
+        all_user_ids = list(User.objects.values_list('id', flat=True))
 
         self.stdout.write('Создание профилей...')
-        profiles_to_create = [Profile(user_id=u_id) for u_id in user_ids]
+        users_without_profiles = User.objects.filter(profile__isnull=True).values_list('id', flat=True)
+        profiles_to_create = [Profile(user_id=u_id) for u_id in users_without_profiles]
         Profile.objects.bulk_create(profiles_to_create, batch_size=BATCH_SIZE_LIGHT)
 
         self.stdout.write('Создание тегов...')
         tags_to_create = []
         for i in range(tags_count):
-            tag_name = f"{fake.word()}_{i}_{random.randint(1, 9999)}"
-            tags_to_create.append(Tag(name=tag_name[:50]))
+            unique_suffix = uuid.uuid4().hex[:8]
+            tag_name = f"{fake.word()}_{unique_suffix}"[:50]
+            tags_to_create.append(Tag(name=tag_name))
 
         Tag.objects.bulk_create(tags_to_create, batch_size=BATCH_SIZE_LIGHT)
-        tag_ids = list(Tag.objects.values_list('id', flat=True))
+        all_tag_ids = list(Tag.objects.values_list('id', flat=True))
 
         self.stdout.write('Создание вопросов...')
         questions_to_create = []
@@ -59,20 +63,20 @@ class Command(BaseCommand):
                 Question(
                     title=fake.sentence()[:255],
                     text=fake.text(),
-                    author_id=random.choice(user_ids)
+                    author_id=random.choice(all_user_ids)
                 )
             )
         Question.objects.bulk_create(questions_to_create, batch_size=BATCH_SIZE_HEAVY)
-        question_ids = list(Question.objects.values_list('id', flat=True))
+        all_question_ids = list(Question.objects.values_list('id', flat=True))
 
         self.stdout.write('Привязка тегов к вопросам...')
         QuestionTag = Question.tags.through
         question_tags_to_create = []
-        for q_id in question_ids:
-            selected_tags = random.sample(tag_ids, random.randint(1, 3))
+        for q_id in all_question_ids:
+            selected_tags = random.sample(all_tag_ids, random.randint(1, 3))
             for t_id in selected_tags:
                 question_tags_to_create.append(QuestionTag(question_id = q_id, tag_id = t_id))
-        QuestionTag.objects.bulk_create(question_tags_to_create, batch_size=BATCH_SIZE_LIGHT)
+        QuestionTag.objects.bulk_create(question_tags_to_create, batch_size=BATCH_SIZE_LIGHT, ignore_conflicts=True)
 
         self.stdout.write('Создание ответов...')
         answers_to_create = []
@@ -80,29 +84,29 @@ class Command(BaseCommand):
             answers_to_create.append(
                 Answer(
                     text=fake.text(),
-                    author_id=random.choice(user_ids),
-                    question_id=random.choice(question_ids),
+                    author_id=random.choice(all_user_ids),
+                    question_id=random.choice(all_question_ids),
                     is_correct=random.choice([True, False, False, False])
                 )
             )
         Answer.objects.bulk_create(answers_to_create, batch_size=BATCH_SIZE_HEAVY)
-        answer_ids = list(Answer.objects.values_list('id', flat=True))
+        all_answer_ids = list(Answer.objects.values_list('id', flat=True))
 
         self.stdout.write('Создание оценок для вопросов...')
         unique_question_likes = set()
         while len(unique_question_likes) < (likes_count // 2):
-            unique_question_likes.add((random.choice(user_ids), random.choice(question_ids)))
+            unique_question_likes.add((random.choice(all_user_ids), random.choice(all_question_ids)))
 
         q_likes = [QuestionLike(user_id=u, question_id=q, is_like=random.choice([True, False])) for u, q in unique_question_likes]
-        QuestionLike.objects.bulk_create(q_likes, batch_size=BATCH_SIZE_LIGHT)
+        QuestionLike.objects.bulk_create(q_likes, batch_size=BATCH_SIZE_LIGHT, ignore_conflicts=True)
 
         self.stdout.write('Создание оценок для ответов...')
         unique_answer_likes = set()
         while len(unique_answer_likes) < (likes_count // 2):
-            unique_answer_likes.add((random.choice(user_ids), random.choice(answer_ids)))
+            unique_answer_likes.add((random.choice(all_user_ids), random.choice(all_answer_ids)))
 
         a_likes = [AnswerLike(user_id=u, answer_id=a, is_like=random.choice([True, False])) for u, a in unique_answer_likes]
-        AnswerLike.objects.bulk_create(a_likes, batch_size=BATCH_SIZE_LIGHT)
+        AnswerLike.objects.bulk_create(a_likes, batch_size=BATCH_SIZE_LIGHT, ignore_conflicts=True)
 
         self.stdout.write('Пересчет рейтингов для вопросов и ответов...')
 

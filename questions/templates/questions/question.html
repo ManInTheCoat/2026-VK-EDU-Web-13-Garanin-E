@@ -10,19 +10,19 @@
         <div class="row flex-nowrap">
 
             <div class="col-auto text-center pe-2 pe-md-3">
-                {% if question.author.profile.avatar %}
-                    <img src="{{ question.author.profile.avatar.url }}" alt="Avatar" width="80" height="80"
-                        class="border mb-3 object-fit-cover rounded">
-                {% else %}
-                <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="80" height="80"
+                <img src="{{ question.author.profile.get_avatar }}" alt="Avatar" width="80" height="80"
                     class="border mb-3 object-fit-cover rounded">
-                {% endif %}
                 <div>
                     <div class="d-inline-flex border border-secondary rounded-1 overflow-hidden">
                         <div class="px-2 d-flex align-items-center fw-bold fs-5">{{ question.rating|default:"0" }}</div>
                         <div class="d-flex flex-column border-start border-secondary px-1 py-1">
-                            <a href="#" class="text-secondary text-decoration-none lh-1">&#9650;</a>
-                            <a href="#" class="text-secondary text-decoration-none lh-1">&#9660;</a>
+                            {% if user.is_authenticated %}
+                                <a href="#" class="text-secondary text-decoration-none lh-1" title="Like">&#9650;</a>
+                                <a href="#" class="text-secondary text-decoration-none lh-1" title="Dislike">&#9660;</a>
+                            {% else %}
+                                <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9650;</span>
+                                <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9660;</span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -33,14 +33,16 @@
                 <p class="card-text fs-5 mb-3">{{ question.text }}</p>
 
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="text-muted ms-2">Tags:</span>
-                    {% for tag in question.tags.all %}
-                    <a href="{% url 'tag' tag.name %}"
-                        class="badge bg-light text-primary border text-decoration-none">{{ tag.name }}</a>
-                    {% endfor %}
+                    {% if question.tags.all %}
+                        <span class="text-muted ms-2">Tags:</span>
+                        {% for tag in question.tags.all %}
+                        <a href="{% url 'tag' tag.name %}"
+                            class="badge bg-light text-primary border text-decoration-none">{{ tag.name }}</a>
+                        {% endfor %}
+                    {% endif %}
                 </div>
 
-                <div class="small text-muted text-end mt-1">
+                <div class="small text-muted text-end mt-1" title="{{ question.created_at|date:'d.m.Y H:i:s' }}">
                     asked {% language 'en' %}{{ question.created_at|timesince }}{% endlanguage %} ago by <span class="fw-bold text-dark">{{ question.author.profile.nickname|default:question.author.username }}</span>
                 </div>
             </div>
@@ -60,15 +62,43 @@
 </div>
 {% endfor %}
 
-{% include "questions/components/pagination.html" with page_obj=answers %}
-
 <hr>
 
 <div class="mb-4">
     <h4 class="fw-bold mb-3">Your Answer</h4>
-    <form>
-        <textarea class="form-control mb-3" rows="5" placeholder="Enter your answer here"></textarea>
-        <button type="submit" class="btn btn-success fw-bold px-3">Answer</button>
-    </form>
+
+    {% if user.is_authenticated %}
+        <form method="POST" action="{% url 'question' question.id %}">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger mb-3">
+                {% for error in form.non_field_errors %}
+                    {{ error }}<br>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <textarea name="{{ form.text.name }}" class="form-control mb-3 {% if form.text.errors %}is-invalid{% endif %}" rows="5" placeholder="Enter your answer here">{{ form.text.value|default_if_none:'' }}</textarea>
+
+            {% if form.text.errors %}
+            <div class="invalid-feedback mb-3 d-block">
+                {% for error in form.text.errors %}
+                    {{ error }}<br>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-success fw-bold px-3">Answer</button>
+        </form>
+    {% else %}
+        <form>
+            <textarea class="form-control mb-3 bg-light" rows="5" placeholder="Enter your answer here" disabled title="Войдите, чтобы написать ответ"></textarea>
+            <button type="button" class="btn btn-success fw-bold px-3 disabled" title="Войдите, чтобы написать ответ">Answer</button>
+        </form>
+        <div class="mt-2 small">
+            <a href="{% url 'login' %}?next={{ request.path }}" class="text-decoration-none fw-bold">Log in</a> or <a href="{% url 'signup' %}" class="text-decoration-none fw-bold">Sign up</a> to write an answer.
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
