@@ -8,36 +8,48 @@ from django.views.generic import ListView, CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from questions.models import Question, Answer, Tag, QuestionLike, AnswerLike
-from questions.utils import paginate
 from questions.forms import QuestionForm, AnswerForm
 
-class IndexView(ListView):
+class ElidedPaginationMixin:
+    """
+    Примесь для добавления красивой пагинации с многоточием (...).
+    Вычисляет диапазон страниц и кладет его прямо в нативный page_obj.
+    """
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        page = context.get('page_obj')
+        if page is not None:
+            page.custom_page_range = page.paginator.get_elided_page_range(
+                page.number, on_each_side=2, on_ends=1
+            )
+        return context
+
+
+class IndexView(ElidedPaginationMixin,ListView):
     """Список новых вопросов (главная страница)"""
     template_name = 'questions/index.html'
+    paginate_by = 20
+    context_object_name = 'questions'
 
     def get_queryset(self):
         return Question.objects.get_new()
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['questions'] = paginate(self.object_list, self.request, per_page=20)
-        return context
 
-class HotQuestionsView(ListView):
+class HotQuestionsView(ElidedPaginationMixin, ListView):
     """Список лучших вопросов"""
     template_name = 'questions/index.html'
+    paginate_by = 20
+    context_object_name = 'questions'
 
     def get_queryset(self):
         return Question.objects.get_best()
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['questions'] = paginate(self.object_list, self.request, per_page=20)
-        return context
 
-class TagQuestionsView(ListView):
+class TagQuestionsView(ElidedPaginationMixin, ListView):
     """Список вопросов по тегу"""
     template_name = 'questions/index.html'
+    paginate_by = 20
+    context_object_name = 'questions'
 
     def get_queryset(self):
         self.tag_obj = get_object_or_404(Tag, name=self.kwargs['tag_name'])
@@ -46,7 +58,6 @@ class TagQuestionsView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['tag_name'] = self.tag_obj.name
-        context['questions'] = paginate(self.object_list, self.request, per_page=20)
         return context
 
 class QuestionDetailView(View):
@@ -73,6 +84,10 @@ class QuestionDetailView(View):
 
         if form.is_valid():
             answer = form.save(author=request.user, question=one_question)
+
+            actual_count = one_question.answers.filter(is_active=True).count()
+
+            Question.objects.filter(pk=one_question.id).update(answers_count=actual_count)
 
             redirect_url = f"{reverse('question', args=[one_question.id])}#answer-{answer.id}"
             return redirect(redirect_url)
@@ -129,7 +144,12 @@ class QuestionLikeAjaxView(View):
         question.rating = likes - dislikes
         question.save(update_fields=['rating'])
 
-        return JsonResponse({'rating': question.rating})
+        if like_obj.is_active:
+            current_vote = 'like' if like_obj.is_like else 'dislike'
+        else:
+            current_vote = 'none'
+
+        return JsonResponse({'rating': question.rating, 'vote': current_vote})
 
 
 class AnswerLikeAjaxView(View):
@@ -167,7 +187,12 @@ class AnswerLikeAjaxView(View):
         answer.rating = likes - dislikes
         answer.save(update_fields=['rating'])
 
-        return JsonResponse({'rating': answer.rating})
+        if like_obj.is_active:
+            current_vote = 'like' if like_obj.is_like else 'dislike'
+        else:
+            current_vote = 'none'
+
+        return JsonResponse({'rating': answer.rating, 'vote': current_vote})
 
 
 class MarkCorrectAnswerAjaxView(View):

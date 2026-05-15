@@ -45,6 +45,10 @@
     {% endfor %}
 </div>
 
-{% include "questions/components/pagination.html" with page_obj=questions %}
+{% include "questions/components/pagination.html" %}
 
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'questions/js/votes.js' %}"></script>
 {% endblock %}
