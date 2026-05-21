@@ -3,6 +3,9 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from questions.managers import TagManager, QuestionManager
 
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVector
+
 class DefaultModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='Дата создания')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
@@ -40,6 +43,10 @@ class Question(DefaultModel):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['-rating', '-created_at']),
+            GinIndex(
+                SearchVector('title', 'text', config='english'),
+                name='question_search_idx'
+            )
         ]
 
     def __str__(self):

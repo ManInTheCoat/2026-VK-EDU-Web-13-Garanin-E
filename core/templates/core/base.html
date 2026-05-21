@@ -25,8 +25,12 @@
             </button>
 
             <div class="collapse navbar-collapse" id="navbarContent">
-                <form class="mx-auto w-50" action="#" method="GET">
-                    <input class="form-control rounded-pill" type="search" placeholder="Search" aria-label="Search">
+
+                <form class="mx-auto w-50 position-relative" action="#" method="GET" id="search-form">
+                    <input id="search-input" class="form-control rounded-pill" type="search" placeholder="Search" aria-label="Search" autocomplete="off">
+
+                    <div id="search-results" class="dropdown-menu w-100 mt-1 shadow border-0" style="display: none; position: absolute; z-index: 1050; max-height: 400px; overflow-y: auto;">
+                    </div>
                 </form>
 
                 <div class="d-flex align-items-center gap-4 ms-lg-auto mt-3 mt-lg-0">
@@ -79,6 +83,7 @@
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/jquery-4.0.0.min.js' %}"></script>
     <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/search.js' %}"></script>
     {% block scripts %}
 
     {% endblock %}

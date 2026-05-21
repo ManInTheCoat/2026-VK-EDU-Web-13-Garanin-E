@@ -1,0 +1,19 @@
+{
+    "client": {
+        "token": {
+            "hmac_secret_key": "your_hmac_secret_key_here"
+        },
+        "allowed_origins": ["*"]
+    },
+    "http_api": {
+        "key": "your_api_key_here"
+    },
+    "channel": {
+        "namespaces": [
+        {
+            "name": "questions",
+            "allow_subscribe_for_client": true
+        }
+        ]
+    }
+}

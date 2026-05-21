@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 import environ
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'core',
     'questions',
 ]
@@ -152,7 +154,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Настройка логирования для отслеживания SQL-запросов
-""" LOGGING = {
+LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
@@ -177,9 +179,59 @@ MEDIA_ROOT = BASE_DIR / 'media'
             'propagate': False,
         }
     },
-} """
+}
 
 LOGIN_URL = 'login'
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# Считываем переменные из конфига
+REDIS_HOST = env.str('REDIS_HOST', default='127.0.0.1')
+REDIS_PORT = env.str('REDIS_PORT', default='6379')
+REDIS_CACHE_DB = env.str('REDIS_CACHE_DB', default='0')
+REDIS_BROKER_DB = env.str('REDIS_BROKER_DB', default='1')
+REDIS_BEAT_DB = env.str('REDIS_BEAT_DB', default='2')
+
+# Redis в качестве Cache Backend
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "TIMEOUT": 60 * 10,
+    }
+}
+
+# Redis в качестве Брокера для Celery
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_BROKER_DB}"
+CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_BEAT_DB}"
+
+# Redis для расписания Celery Beat
+CELERY_BEAT_SCHEDULER = "redbeat.RedBeatScheduler"
+CELERY_REDBEAT_REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_BEAT_DB}"
+
+# Расписание периодических задач Celery Beat
+CELERY_BEAT_SCHEDULE = {
+    'update-popular-tags-every-15-minutes': {
+        'task': 'questions.tasks.update_popular_tags_cache',
+        'schedule': crontab(minute='*/15'),
+    },
+    'update-best-users-every-15-minutes': {
+        'task': 'questions.tasks.update_best_users_cache',
+        'schedule': crontab(minute='*/15'),
+    },
+}
+
+# Настройки Centrifugo
+CENTRIFUGO_API_KEY = env.str('CENTRIFUGO_API_KEY', default='')
+CENTRIFUGO_TOKEN_HMAC_SECRET_KEY = env.str('CENTRIFUGO_TOKEN_HMAC_SECRET_KEY', default='')
+CENTRIFUGO_URL = env.str('CENTRIFUGO_URL', default='')
+CENTRIFUGO_WS_URL = env.str('CENTRIFUGO_WS_URL', default='ws://localhost:8001/connection/websocket')
+
+# Настройки Email
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = env.str("EMAIL_HOST", default="127.0.0.1")
+EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@niceanswer.local")

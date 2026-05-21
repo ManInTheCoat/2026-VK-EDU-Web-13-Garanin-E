@@ -1,3 +1,7 @@
+import jwt
+import time
+from django.conf import settings
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.http import JsonResponse
@@ -7,8 +11,11 @@ from django.views import View
 from django.views.generic import ListView, CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+
 from questions.models import Question, Answer, Tag, QuestionLike, AnswerLike
 from questions.forms import QuestionForm, AnswerForm
+from questions.tasks import send_new_answer_notification, send_email_notification_task
 
 class ElidedPaginationMixin:
     """
@@ -63,17 +70,31 @@ class TagQuestionsView(ElidedPaginationMixin, ListView):
 class QuestionDetailView(View):
     """Страница одного вопроса со списком ответов и формой добавления ответа"""
 
+    def get_centrifugo_data(self, request):
+        """Вспомогательный метод для генерации токена и URL Centrifugo"""
+        user_id = str(request.user.id) if request.user.is_authenticated else 'anonymous'
+        claims = {"sub": user_id, "exp": int(time.time()) + 24 * 60 * 60}
+
+        token = jwt.encode(claims, settings.CENTRIFUGO_TOKEN_HMAC_SECRET_KEY, algorithm='HS256')
+
+        return {
+            'centrifugo_token': token,
+            'ws_url': settings.CENTRIFUGO_WS_URL,
+        }
+
     def get(self, request, question_id, *args, **kwargs):
         one_question = get_object_or_404(Question, pk=question_id, is_active=True)
         answers = one_question.answers.filter(is_active=True).select_related('author', 'author__profile').order_by('-rating', 'created_at')
 
         form = AnswerForm()
-
-        return render(request, 'questions/question.html', {
+        context = {
             'question': one_question,
             'answers': answers,
             'form': form,
-        })
+        }
+        context.update(self.get_centrifugo_data(request))
+
+        return render(request, 'questions/question.html', context)
 
     def post(self, request, question_id, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -86,19 +107,24 @@ class QuestionDetailView(View):
             answer = form.save(author=request.user, question=one_question)
 
             actual_count = one_question.answers.filter(is_active=True).count()
-
             Question.objects.filter(pk=one_question.id).update(answers_count=actual_count)
+
+            send_new_answer_notification.delay(one_question.id, answer.id)
+            send_email_notification_task.delay(one_question.id, answer.id)
 
             redirect_url = f"{reverse('question', args=[one_question.id])}#answer-{answer.id}"
             return redirect(redirect_url)
 
         answers = one_question.answers.filter(is_active=True).select_related('author', 'author__profile').order_by('-rating', 'created_at')
 
-        return render(request, 'questions/question.html', {
+        context = {
             'question': one_question,
             'answers': answers,
             'form': form,
-        })
+        }
+        context.update(self.get_centrifugo_data(request))
+
+        return render(request, 'questions/question.html', context)
 
 class AskQuestionView(LoginRequiredMixin, CreateView):
     """Форма создания вопроса"""
@@ -226,3 +252,37 @@ class MarkCorrectAnswerAjaxView(View):
                 status_correct = False
 
         return JsonResponse({'is_correct': status_correct, 'answer_id': answer.id})
+
+
+class SingleAnswerHTMLView(View):
+    """Возвращает готовый HTML одного ответа для AJAX-подгрузки по веб-сокетам"""
+    def get(self, request, answer_id, *args, **kwargs):
+        answer = get_object_or_404(Answer, pk=answer_id, is_active=True)
+
+        return render(request, 'questions/components/answer_card.html', {
+            'answer': answer
+        })
+
+
+class SearchQuestionsAjaxView(View):
+    """API для полнотекстового поиска (выпадающая подсказка)"""
+    def get(self, request, *args, **kwargs):
+        query = request.GET.get('q', '').strip()
+
+        if len(query) < 2:
+            return JsonResponse({'results': []})
+
+        search_vector = SearchVector('title', weight='A', config='english') + SearchVector('text', weight='B', config='english')
+        search_query = SearchQuery(query, config='english')
+
+        questions = Question.objects.annotate(
+            search=search_vector,
+            rank=SearchRank(search_vector, search_query)
+        ).filter(search=search_query).order_by('-rank')[:5]
+
+        results = [
+            {'id': q.id, 'title': q.title}
+            for q in questions
+        ]
+
+        return JsonResponse({'results': results})

@@ -10,4 +10,6 @@ urlpatterns = [
     path('ajax/like-question/', views.QuestionLikeAjaxView.as_view(), name='like_question'),
     path('ajax/like-answer/', views.AnswerLikeAjaxView.as_view(), name='like_answer'),
     path('ajax/mark-correct/', views.MarkCorrectAnswerAjaxView.as_view(), name='mark_correct'),
+    path('answer/<int:answer_id>/html/', views.SingleAnswerHTMLView.as_view(), name='answer_html'),
+    path('ajax/search/', views.SearchQuestionsAjaxView.as_view(), name='search_ajax'),
 ]

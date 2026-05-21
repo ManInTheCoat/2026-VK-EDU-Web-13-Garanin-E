@@ -56,15 +56,17 @@
 </div>
 
 <hr>
-<h4 class="fw-bold mb-4">{{ question.answers.count }} Answers</h4>
+<h4 class="fw-bold mb-4"><span id="answers-count">{{ question.answers.count }}</span> Answers</h4>
 
-{% for answer in answers %}
-{% include "questions/components/answer_card.html" %}
-{% empty %}
-<div class="alert alert-warning">
-    <p class="mb-0">Пока нет ни одного ответа к этому вопросу. Будьте первым, кто поможет!</p>
+<div id="answers-list">
+    {% for answer in answers %}
+        {% include "questions/components/answer_card.html" %}
+    {% empty %}
+        <div class="alert alert-warning" id="no-answers-msg">
+            <p class="mb-0">Пока нет ни одного ответа к этому вопросу. Будьте первым, кто поможет!</p>
+        </div>
+    {% endfor %}
 </div>
-{% endfor %}
 
 <hr>
 
@@ -109,4 +111,45 @@
 
 {% block scripts %}
     <script src="{% static 'questions/js/votes.js' %}"></script>
+    <script src="https://unpkg.com/centrifuge@5.4.0/dist/centrifuge.js"></script>
+
+    <script>
+        const centrifuge = new Centrifuge("{{ ws_url }}", {
+            token: "{{ centrifugo_token }}"
+        });
+
+        const sub = centrifuge.newSubscription("questions:{{ question.id }}");
+
+        sub.on('publication', function (ctx) {
+            const payload = ctx.data;
+            const newAnswerId = payload.answer_id;
+
+            fetch(`/answer/${newAnswerId}/html/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка при загрузке ответа');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    const noAnswersMsg = document.getElementById('no-answers-msg');
+                    if (noAnswersMsg) noAnswersMsg.style.display = 'none';
+
+                    const answersList = document.getElementById('answers-list');
+                    answersList.insertAdjacentHTML('afterbegin', html);
+
+                    const countSpan = document.getElementById('answers-count');
+                    if (countSpan) {
+                        const currentCount = parseInt(countSpan.innerText) || 0;
+                        countSpan.innerText = currentCount + 1;
+                    }
+                })
+                .catch(error => {
+                    console.error('WebSocket Fetch Error:', error);
+                });
+        });
+
+        sub.subscribe();
+        centrifuge.connect();
+    </script>
 {% endblock %}

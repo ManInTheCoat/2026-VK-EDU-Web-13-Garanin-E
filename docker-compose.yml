@@ -8,6 +8,30 @@ services:
             - postgres_data:/var/lib/postgresql
         ports:
             - "5432:5432"
+
+    redis:
+        image: redis:8-alpine
+        container_name: niceanswer_redis
+        ports:
+            - "6379:6379"
+        restart: always
+
+    centrifugo:
+        image: centrifugo/centrifugo:v6
+        container_name: niceanswer_centrifugo
+        volumes:
+            - ./centrifugo.json:/centrifugo/config.json
+        command: centrifugo -c config.json
+        ports:
+            - "8001:8000"
+
+    maildev:
+        image: maildev/maildev
+        container_name: niceanswer_maildev
+        ports:
+            - "1080:1080"
+            - "1025:1025"
+
     web:
         build: .
         container_name: niceanswer_web
@@ -21,6 +45,36 @@ services:
           - .env.docker
         depends_on:
             - db
+            - redis
+            - centrifugo
+            - maildev
+
+    celery:
+        build: .
+        container_name: niceanswer_celery
+        command: celery -A application worker --loglevel=info
+        volumes:
+            - .:/app
+            - ./media:/app/media
+        env_file:
+            - .env.docker
+        depends_on:
+            - db
+            - redis
+            - centrifugo
+            - maildev
+
+    celerybeat:
+        build: .
+        container_name: niceanswer_celerybeat
+        command: celery -A application beat --loglevel=info
+        volumes:
+            - .:/app
+        env_file:
+            - .env.docker
+        depends_on:
+            - db
+            - redis
 
 volumes:
     postgres_data:

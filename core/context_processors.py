@@ -1,9 +1,17 @@
-from django.contrib.auth.models import User
-from django.db.models import F
-from questions.models import Tag
+from django.core.cache import cache
+from questions.tasks import update_popular_tags_cache, update_best_users_cache
 
 def sidebar_data(request):
-    tags_qs = Tag.objects.order_by('-questions_count')[:8]
+    cached_tags = cache.get('popular_tags')
+    cached_users = cache.get('best_users')
+
+    if cached_tags is None:
+        update_popular_tags_cache()
+        cached_tags = cache.get('popular_tags') or []
+
+    if cached_users is None:
+        update_best_users_cache()
+        cached_users = cache.get('best_users') or []
 
     css_classes = [
         'text-dark',
@@ -13,16 +21,14 @@ def sidebar_data(request):
     ]
 
     popular_tags = []
-    for i, tag in enumerate(tags_qs):
+    for i, tag in enumerate(cached_tags):
         popular_tags.append({
             'name': tag.name,
             'css': css_classes[i % len(css_classes)]
         })
 
-    best_members_qs = User.objects.select_related('profile').order_by(F('profile__answers_count').desc(nulls_last=True))[:5]
-
     best_members = []
-    for user in best_members_qs:
+    for user in cached_users:
         if hasattr(user, 'profile') and user.profile.nickname:
             best_members.append(user.profile.nickname)
         else:
