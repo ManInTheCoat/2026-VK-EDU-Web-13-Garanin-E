@@ -9,7 +9,7 @@
                 <img src="{{ question.author.profile.get_avatar }}" alt="Avatar" width="50" height="50"
                     class="border mb-2 object-fit-cover rounded">
                 <div>
-                    {% get_question_vote request.user question as vote_state %}
+                    {% get_question_vote question_likes_map question as vote_state %}
 
                     <div class="vote-container d-inline-flex border {% if vote_state == 'like' %}border-success{% elif vote_state == 'dislike' %}border-danger{% else %}border-secondary{% endif %} rounded-1 overflow-hidden">
                         <div class="px-2 d-flex align-items-center fw-bold fs-5 {% if vote_state == 'like' %}text-success{% elif vote_state == 'dislike' %}text-danger{% else %}text-secondary{% endif %}" id="question-rating-{{ question.id }}">{{ question.rating|default:"0" }}</div>

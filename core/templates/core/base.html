@@ -80,12 +80,12 @@
         </div>
     </footer>
 
-    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-    <script src="{% static 'js/jquery-4.0.0.min.js' %}"></script>
-    <script src="{% static 'js/main.js' %}"></script>
-    <script src="{% static 'js/search.js' %}"></script>
-    {% block scripts %}
 
+    {% block scripts %}
+        <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+        <script src="{% static 'js/jquery-4.0.0.min.js' %}"></script>
+        <script src="{% static 'js/main.js' %}"></script>
+        <script src="{% static 'js/search.js' %}"></script>
     {% endblock %}
 </body>
 

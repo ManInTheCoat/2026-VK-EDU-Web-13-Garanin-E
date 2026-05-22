@@ -50,5 +50,7 @@
 {% endblock %}
 
 {% block scripts %}
+    {{ block.super }}
+
     <script src="{% static 'questions/js/votes.js' %}"></script>
 {% endblock %}

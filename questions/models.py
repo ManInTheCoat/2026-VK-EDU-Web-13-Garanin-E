@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.urls import reverse
 from questions.managers import TagManager, QuestionManager
@@ -55,6 +55,17 @@ class Question(DefaultModel):
     def get_absolute_url(self):
         return reverse('question', kwargs={'question_id': self.pk})
 
+    def sync_answers_count(self):
+        actual_count = self.answers.filter(is_active=True).count()
+        Question.objects.filter(pk=self.id).update(answers_count=actual_count)
+
+    def sync_rating(self):
+        likes = self.likes.filter(is_like=True, is_active=True).count()
+        dislikes = self.likes.filter(is_like=False, is_active=True).count()
+        self.rating = likes - dislikes
+        self.save(update_fields=['rating'])
+
+
 class Answer(DefaultModel):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers', verbose_name='Вопрос')
     author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='answers', verbose_name='Автор')
@@ -69,6 +80,30 @@ class Answer(DefaultModel):
 
     def __str__(self):
         return f'Ответ на вопрос #{self.question_id} пользователя #{self.author_id}'
+
+    def sync_rating(self):
+        likes = self.likes.filter(is_like=True, is_active=True).count()
+        dislikes = self.likes.filter(is_like=False, is_active=True).count()
+        self.rating = likes - dislikes
+        self.save(update_fields=['rating'])
+
+    @transaction.atomic
+    def toggle_correct(self):
+        """
+        Устанавливает ответ как правильный
+        или снимает отметку, если ответ уже был правильным.
+        """
+        if self.is_correct:
+            self.is_correct = False
+            self.save(update_fields=["is_correct"])
+            return False
+
+        Answer.objects.filter(question_id=self.question_id, is_correct=True).update(is_correct=False)
+
+        self.is_correct = True
+        self.save(update_fields=["is_correct"])
+        return True
+
 
 class QuestionLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь')
