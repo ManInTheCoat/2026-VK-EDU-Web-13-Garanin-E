@@ -1,5 +1,6 @@
 {% load static %}
 {% load i18n %}
+{% load vote_tags %}
 <div class="card mb-3 shadow-sm border-0 bg-white" id="answer-{{ answer.id }}">
     <div class="card-body">
         <div class="row flex-nowrap">
@@ -8,13 +9,16 @@
                 <img src="{{ answer.author.profile.get_avatar }}" alt="Avatar" width="60" height="60"
                     class="border mb-3 object-fit-cover rounded">
                 <div>
-                    <div class="d-inline-flex border border-secondary rounded-1 overflow-hidden mb-3">
-                        <div class="px-2 d-flex align-items-center fw-bold fs-5 text-secondary">{{ answer.rating|default:"0" }}</div>
-                        <div class="d-flex flex-column border-start border-secondary px-1 py-1">
+                    {% get_answer_vote request.user answer as vote_state %}
+
+                    <div class="vote-container d-inline-flex border {% if vote_state == 'like' %}border-success{% elif vote_state == 'dislike' %}border-danger{% else %}border-secondary{% endif %} rounded-1 overflow-hidden mb-3">
+                        <div class="px-2 d-flex align-items-center fw-bold fs-5 {% if vote_state == 'like' %}text-success{% elif vote_state == 'dislike' %}text-danger{% else %}text-secondary{% endif %}" id="answer-rating-{{ answer.id }}">{{ answer.rating|default:"0" }}</div>
+
+                        <div class="vote-controls d-flex flex-column border-start {% if vote_state == 'like' %}border-success{% elif vote_state == 'dislike' %}border-danger{% else %}border-secondary{% endif %} px-1 py-1">
 
                             {% if user.is_authenticated %}
-                                <a href="#" class="text-secondary text-decoration-none lh-1" title="Like">&#9650;</a>
-                                <a href="#" class="text-secondary text-decoration-none lh-1" title="Dislike">&#9660;</a>
+                                <a href="#" class="{% if vote_state == 'like' %}text-success{% else %}text-secondary{% endif %} text-decoration-none lh-1 answer-vote" data-id="{{ answer.id }}" data-type="like" title="Like">&#9650;</a>
+                                <a href="#" class="{% if vote_state == 'dislike' %}text-danger{% else %}text-secondary{% endif %} text-decoration-none lh-1 answer-vote" data-id="{{ answer.id }}" data-type="dislike" title="Dislike">&#9660;</a>
                             {% else %}
                                 <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9650;</span>
                                 <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9660;</span>
@@ -30,16 +34,15 @@
 
                 <div class="mt-auto align-self-end d-flex align-items-center gap-3 small flex-wrap">
 
-                    {% if answer.is_correct %}
-                        {% if request.user == question.author %}
-                            <a href="#" class="text-success text-decoration-none fw-bold" title="Unmark as correct answer">&#10003; Accepted answer</a>
-                        {% else %}
-                            <span class="text-success fw-bold" title="Marked as correct answer">&#10003; Accepted answer</span>
-                        {% endif %}
-                    {% else %}
-                        {% if request.user == question.author %}
-                            <a href="#" class="text-secondary text-decoration-none fw-bold" title="Mark as correct answer">&#10003; Mark as Accepted</a>
-                        {% endif %}
+                    {% if request.user == question.author %}
+                        <a href="#" class="correct-answer-btn text-decoration-none fw-bold {% if answer.is_correct %}text-success{% else %}text-secondary{% endif %}"
+                            data-question-id="{{ question.id }}"
+                            data-answer-id="{{ answer.id }}"
+                            title="{% if answer.is_correct %}Unmark as correct answer{% else %}Mark as correct answer{% endif %}">
+                            &#10003; <span class="btn-text">{% if answer.is_correct %}Accepted answer{% else %}Mark as Accepted{% endif %}</span>
+                        </a>
+                    {% elif answer.is_correct %}
+                        <span class="text-success fw-bold" title="Marked as correct answer">&#10003; Accepted answer</span>
                     {% endif %}
 
                     <div class="text-muted" title="{{ answer.created_at|date:'d.m.Y H:i:s' }}">

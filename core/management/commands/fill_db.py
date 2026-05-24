@@ -57,6 +57,8 @@ class Command(BaseCommand):
         all_tag_ids = list(Tag.objects.values_list('id', flat=True))
 
         self.stdout.write('Создание вопросов...')
+        old_question_ids = set(Question.objects.values_list('id', flat=True))
+
         questions_to_create = []
         for i in range(questions_count):
             questions_to_create.append(
@@ -69,26 +71,43 @@ class Command(BaseCommand):
         Question.objects.bulk_create(questions_to_create, batch_size=BATCH_SIZE_HEAVY)
         all_question_ids = list(Question.objects.values_list('id', flat=True))
 
+        new_question_ids = list(set(all_question_ids) - old_question_ids)
+
         self.stdout.write('Привязка тегов к вопросам...')
         QuestionTag = Question.tags.through
         question_tags_to_create = []
-        for q_id in all_question_ids:
+
+        for q_id in new_question_ids:
             selected_tags = random.sample(all_tag_ids, random.randint(1, 3))
             for t_id in selected_tags:
                 question_tags_to_create.append(QuestionTag(question_id = q_id, tag_id = t_id))
         QuestionTag.objects.bulk_create(question_tags_to_create, batch_size=BATCH_SIZE_LIGHT, ignore_conflicts=True)
 
         self.stdout.write('Создание ответов...')
+
+        questions_with_correct_answer = set(
+            Answer.objects.filter(is_correct=True).values_list('question_id', flat=True)
+        )
+
         answers_to_create = []
         for i in range(answers_count):
+            q_id = random.choice(all_question_ids)
+
+            is_correct = False
+            if q_id not in questions_with_correct_answer:
+                if random.choice([[True, False, False, False]]):
+                    is_correct = True
+                    questions_with_correct_answer.add(q_id)
+
             answers_to_create.append(
                 Answer(
                     text=fake.text(),
                     author_id=random.choice(all_user_ids),
-                    question_id=random.choice(all_question_ids),
-                    is_correct=random.choice([True, False, False, False])
+                    question_id=q_id,
+                    is_correct=is_correct
                 )
             )
+
         Answer.objects.bulk_create(answers_to_create, batch_size=BATCH_SIZE_HEAVY)
         all_answer_ids = list(Answer.objects.values_list('id', flat=True))
 

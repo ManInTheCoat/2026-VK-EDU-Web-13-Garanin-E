@@ -63,6 +63,9 @@
             <div class="mb-3">
                 <label for="{{ form.password.id_for_label }}" class="form-label fw-bold">Password</label>
                 <input type="password" name="{{ form.password.name }}" class="form-control {% if form.password.errors %}is-invalid{% endif %}" id="{{ form.password.id_for_label }}" placeholder="Create a strong password">
+
+                <div class="form-text text-muted small">The password must contain at least 8 characters and cannot be made up of numbers only or be too simple.</div>
+
                 {% if form.password.errors %}
                     <div class="invalid-feedback">
                         {% for error in form.password.errors %}
