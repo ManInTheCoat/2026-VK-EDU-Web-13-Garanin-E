@@ -57,7 +57,8 @@ class Question(DefaultModel):
 
     def sync_answers_count(self):
         actual_count = self.answers.filter(is_active=True).count()
-        Question.objects.filter(pk=self.id).update(answers_count=actual_count)
+        self.answers_count = actual_count
+        self.save(update_fields=["answers_count"])
 
     def sync_rating(self):
         likes = self.likes.filter(is_like=True, is_active=True).count()

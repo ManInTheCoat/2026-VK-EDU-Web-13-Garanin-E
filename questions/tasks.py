@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from cent import Client, PublishRequest
 from django.core.mail import send_mail
+from django.templatetags.static import static
 
 from questions.models import Tag, Question, Answer
 
@@ -45,22 +46,44 @@ def send_new_answer_notification(question_id, answer_id):
     """Отправляет уведомление о новом ответе в Centrifugo"""
     client = Client(settings.CENTRIFUGO_URL, api_key=settings.CENTRIFUGO_API_KEY, timeout=1)
 
-    data = {
-        'answer_id': answer_id
+    answer = Answer.objects.select_related('author', 'author__profile', 'question').get(id=answer_id)
+
+    author_data = {
+        'id': None,
+        'nickname': 'Deleted user',
+        'avatar_url': static('img/default_avatar.jpg')
     }
+
+    if answer.author:
+        author_data['id'] = answer.author.id
+        author_data['nickname'] = answer.author.profile.nickname or answer.author.username
+        author_data['avatar_url'] = answer.author.profile.get_avatar
+
+    data = {
+        'id': answer.id,
+        'text': answer.text,
+        'rating': answer.rating,
+        'is_correct': answer.is_correct,
+        'author': author_data,
+        'question': {
+            'id': answer.question.id,
+            'author_id': answer.question.author_id
+        }
+    }
+
     channel = f"questions:{question_id}"
 
     request = PublishRequest(channel=channel, data=data)
     client.publish(request)
 
-    return f"Sent ping for answer {answer_id} to {channel}"
+    return f"Sent JSON metadata for answer {answer_id} to {channel}"
 
 @shared_task
 def send_email_notification_task(question_id, answer_id):
     """Отправляет email-уведомление автору вопроса"""
     try:
-        question = Question.objects.get(id=question_id)
-        answer = Answer.objects.get(id=answer_id)
+        question = Question.objects.select_related('author').get(id=question_id)
+        answer = Answer.objects.select_related('author').get(id=answer_id)
     except (Question.DoesNotExist, Answer.DoesNotExist):
         return f"Question {question_id} or Answer {answer_id} not found."
 

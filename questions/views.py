@@ -1,7 +1,4 @@
-import jwt
-import time
 from django.conf import settings
-
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.http import JsonResponse
@@ -15,6 +12,7 @@ from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from questions.models import Question, Answer, Tag, QuestionLike, AnswerLike
 from questions.forms import QuestionForm, AnswerForm
 from questions.tasks import send_new_answer_notification, send_email_notification_task
+from questions.utils import get_centrifugo_data
 
 class ElidedPaginationMixin:
     """
@@ -104,17 +102,6 @@ class TagQuestionsView(QuestionLikesContextMixin, ElidedPaginationMixin, ListVie
 class QuestionDetailView(View):
     """Страница одного вопроса со списком ответов и формой добавления ответа"""
 
-    def get_centrifugo_data(self, request):
-        """Вспомогательный метод для генерации токена и URL Centrifugo"""
-        user_id = str(request.user.id) if request.user.is_authenticated else 'anonymous'
-        claims = {"sub": user_id, "exp": int(time.time()) + 24 * 60 * 60}
-        token = jwt.encode(claims, settings.CENTRIFUGO_TOKEN_HMAC_SECRET_KEY, algorithm='HS256')
-
-        return {
-            'centrifugo_token': token,
-            'ws_url': settings.CENTRIFUGO_WS_URL,
-        }
-
     def get(self, request, question_id, *args, **kwargs):
         one_question = get_object_or_404(Question, pk=question_id, is_active=True)
         answers = one_question.answers.filter(is_active=True).select_related('author', 'author__profile').order_by('-rating', 'created_at')
@@ -139,7 +126,7 @@ class QuestionDetailView(View):
             'question_likes_map': question_likes_map,
             'answer_likes_map': answer_likes_map,
         }
-        context.update(self.get_centrifugo_data(request))
+        context.update(get_centrifugo_data(request))
 
         return render(request, 'questions/question.html', context)
 
@@ -179,7 +166,7 @@ class QuestionDetailView(View):
             'question_likes_map': question_likes_map,
             'answer_likes_map': answer_likes_map,
         }
-        context.update(self.get_centrifugo_data(request))
+        context.update(get_centrifugo_data(request))
 
         return render(request, 'questions/question.html', context)
 
@@ -297,16 +284,6 @@ class MarkCorrectAnswerAjaxView(LoginRequiredApiMixin, View):
         return JsonResponse({'is_correct': status_correct, 'answer_id': answer.id})
 
 
-class SingleAnswerHTMLView(View):
-    """Возвращает готовый HTML одного ответа для AJAX-подгрузки по веб-сокетам"""
-    def get(self, request, answer_id, *args, **kwargs):
-        answer = get_object_or_404(Answer, pk=answer_id, is_active=True)
-
-        return render(request, 'questions/components/answer_card.html', {
-            'answer': answer
-        })
-
-
 class SearchQuestionsAjaxView(View):
     """API для полнотекстового поиска (выпадающая подсказка)"""
     def get(self, request, *args, **kwargs):
@@ -318,14 +295,11 @@ class SearchQuestionsAjaxView(View):
         search_vector = SearchVector('title', weight='A', config='english') + SearchVector('text', weight='B', config='english')
         search_query = SearchQuery(query, config='english')
 
-        questions = Question.objects.annotate(
+        questions_qs = Question.objects.annotate(
             search=search_vector,
             rank=SearchRank(search_vector, search_query)
-        ).filter(search=search_query).order_by('-rank')[:5]
+        ).filter(search=search_query).order_by('-rank', '-id').values('id', 'title')[:5]
 
-        results = [
-            {'id': q.id, 'title': q.title}
-            for q in questions
-        ]
+        results = list(questions_qs)
 
         return JsonResponse({'results': results})

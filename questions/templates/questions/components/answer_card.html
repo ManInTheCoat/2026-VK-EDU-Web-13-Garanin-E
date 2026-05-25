@@ -6,8 +6,14 @@
         <div class="row flex-nowrap">
 
             <div class="col-auto text-center pe-2 pe-md-3">
-                <img src="{{ answer.author.profile.get_avatar }}" alt="Avatar" width="60" height="60"
-                    class="border mb-3 object-fit-cover rounded">
+                {% if answer.author %}
+                    <img src="{{ answer.author.profile.get_avatar }}" alt="Avatar" width="60" height="60"
+                        class="border mb-3 object-fit-cover rounded">
+                {% else %}
+                    <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="60" height="60"
+                        class="border mb-3 object-fit-cover rounded">
+                {% endif %}
+
                 <div>
                     {% get_answer_vote answer_likes_map answer as vote_state %}
 
@@ -46,7 +52,14 @@
                     {% endif %}
 
                     <div class="text-muted" title="{{ answer.created_at|date:'d.m.Y H:i:s' }}">
-                        answered {% language 'en' %}{{ answer.created_at|timesince }}{% endlanguage %} ago by <span class="fw-bold text-dark">{{ answer.author.profile.nickname|default:answer.author.username }}</span>
+                        answered {% language 'en' %}{{ answer.created_at|timesince }}{% endlanguage %} ago by
+                        <span class="fw-bold text-dark">
+                            {% if answer.author %}
+                                {{ answer.author.profile.nickname|default:answer.author.username }}
+                            {% else %}
+                                Deleted user
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
             </div>
