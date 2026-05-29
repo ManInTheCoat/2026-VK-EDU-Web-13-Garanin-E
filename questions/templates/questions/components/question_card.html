@@ -6,10 +6,16 @@
         <div class="row flex-nowrap">
 
             <div class="col-auto text-center pe-2 pe-md-3">
-                <img src="{{ question.author.profile.get_avatar }}" alt="Avatar" width="50" height="50"
-                    class="border mb-2 object-fit-cover rounded">
+                {% if question.author %}
+                    <img src="{{ question.author.profile.get_avatar }}" alt="Avatar" width="50" height="50"
+                        class="border mb-2 object-fit-cover rounded">
+                {% else %}
+                    <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="50" height="50"
+                        class="border mb-2 object-fit-cover rounded">
+                {% endif %}
+
                 <div>
-                    {% get_question_vote request.user question as vote_state %}
+                    {% get_question_vote question_likes_map question as vote_state %}
 
                     <div class="vote-container d-inline-flex border {% if vote_state == 'like' %}border-success{% elif vote_state == 'dislike' %}border-danger{% else %}border-secondary{% endif %} rounded-1 overflow-hidden">
                         <div class="px-2 d-flex align-items-center fw-bold fs-5 {% if vote_state == 'like' %}text-success{% elif vote_state == 'dislike' %}text-danger{% else %}text-secondary{% endif %}" id="question-rating-{{ question.id }}">{{ question.rating|default:"0" }}</div>
@@ -49,7 +55,14 @@
                 </div>
 
                 <div class="small text-muted text-end mt-1" title="{{ question.created_at|date:'d.m.Y H:i:s' }}">
-                    asked {% language 'en' %}{{ question.created_at|timesince }}{% endlanguage %} ago by <span class="fw-bold text-dark">{{ question.author.profile.nickname|default:question.author.username }}</span>
+                    asked {% language 'en' %}{{ question.created_at|timesince }}{% endlanguage %} ago by
+                    <span class="fw-bold text-dark">
+                        {% if question.author %}
+                            {{ question.author.profile.nickname|default:question.author.username }}
+                        {% else %}
+                            Deleted user
+                        {% endif %}
+                    </span>
                 </div>
             </div>
 

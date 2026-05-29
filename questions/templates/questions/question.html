@@ -11,10 +11,16 @@
         <div class="row flex-nowrap">
 
             <div class="col-auto text-center pe-2 pe-md-3">
-                <img src="{{ question.author.profile.get_avatar }}" alt="Avatar" width="80" height="80"
-                    class="border mb-3 object-fit-cover rounded">
+                {% if question.author %}
+                    <img src="{{ question.author.profile.get_avatar }}" alt="Avatar" width="80" height="80"
+                        class="border mb-3 object-fit-cover rounded">
+                {% else %}
+                    <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="80" height="80"
+                        class="border mb-3 object-fit-cover rounded">
+                {% endif %}
+
                 <div>
-                    {% get_question_vote request.user question as vote_state %}
+                    {% get_question_vote question_likes_map question as vote_state %}
 
                     <div class="vote-container d-inline-flex border {% if vote_state == 'like' %}border-success{% elif vote_state == 'dislike' %}border-danger{% else %}border-secondary{% endif %} rounded-1 overflow-hidden">
                         <div class="px-2 d-flex align-items-center fw-bold fs-5 {% if vote_state == 'like' %}text-success{% elif vote_state == 'dislike' %}text-danger{% else %}text-secondary{% endif %}" id="question-rating-{{ question.id }}">{{ question.rating|default:"0" }}</div>
@@ -47,7 +53,14 @@
                 </div>
 
                 <div class="small text-muted text-end mt-1" title="{{ question.created_at|date:'d.m.Y H:i:s' }}">
-                    asked {% language 'en' %}{{ question.created_at|timesince }}{% endlanguage %} ago by <span class="fw-bold text-dark">{{ question.author.profile.nickname|default:question.author.username }}</span>
+                    asked {% language 'en' %}{{ question.created_at|timesince }}{% endlanguage %} ago by
+                    <span class="fw-bold text-dark">
+                        {% if question.author %}
+                            {{ question.author.profile.nickname|default:question.author.username }}
+                        {% else %}
+                            Deleted user
+                        {% endif %}
+                    </span>
                 </div>
             </div>
 
@@ -56,15 +69,17 @@
 </div>
 
 <hr>
-<h4 class="fw-bold mb-4">{{ question.answers.count }} Answers</h4>
+<h4 class="fw-bold mb-4"><span id="answers-count">{{ question.answers.count }}</span> Answers</h4>
 
-{% for answer in answers %}
-{% include "questions/components/answer_card.html" %}
-{% empty %}
-<div class="alert alert-warning">
-    <p class="mb-0">Пока нет ни одного ответа к этому вопросу. Будьте первым, кто поможет!</p>
+<div id="answers-list">
+    {% for answer in answers %}
+        {% include "questions/components/answer_card.html" %}
+    {% empty %}
+        <div class="alert alert-warning" id="no-answers-msg">
+            <p class="mb-0">Пока нет ни одного ответа к этому вопросу. Будьте первым, кто поможет!</p>
+        </div>
+    {% endfor %}
 </div>
-{% endfor %}
 
 <hr>
 
@@ -108,5 +123,105 @@
 {% endblock %}
 
 {% block scripts %}
+    {{ block.super }}
+
     <script src="{% static 'questions/js/votes.js' %}"></script>
+    <script src="{% static 'questions/js/centrifuge.js' %}"></script>
+
+    {{ user.id|json_script:"user-id" }}
+    {{ user.is_authenticated|json_script:"is-auth" }}
+
+    <script>
+        const centrifuge = new Centrifuge("{{ ws_url }}", {
+            token: "{{ centrifugo_token }}"
+        });
+
+        const sub = centrifuge.newSubscription("questions:{{ question.id }}");
+
+        const currentUserId = JSON.parse(document.getElementById('user-id').textContent);
+        const isAuthenticated = JSON.parse(document.getElementById('is-auth').textContent);
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        function createAnswerCardHTML(answer) {
+            let markAcceptedBtn = '';
+
+            if (isAuthenticated && currentUserId === answer.question.author_id) {
+                markAcceptedBtn = `
+                    <a href="#" class="correct-answer-btn text-decoration-none fw-bold text-secondary"
+                        data-question-id="${answer.question.id}"
+                        data-answer-id="${answer.id}"
+                        title="Mark as correct answer">
+                        &#10003; <span class="btn-text">Mark as Accepted</span>
+                    </a>
+                `;
+            }
+
+            let voteControls = '';
+            if (isAuthenticated) {
+                voteControls = `
+                    <a href="#" class="text-secondary text-decoration-none lh-1 answer-vote" data-id="${answer.id}" data-type="like" title="Like">&#9650;</a>
+                    <a href="#" class="text-secondary text-decoration-none lh-1 answer-vote" data-id="${answer.id}" data-type="dislike" title="Dislike">&#9660;</a>
+                `;
+            } else {
+                voteControls = `
+                    <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9650;</span>
+                    <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9660;</span>
+                `;
+            }
+
+            return `
+            <div class="card mb-3 shadow-sm border-0 bg-white" id="answer-${answer.id}">
+                <div class="card-body">
+                    <div class="row flex-nowrap">
+                        <div class="col-auto text-center pe-2 pe-md-3">
+                            <img src="${answer.author.avatar_url}" alt="Avatar" width="60" height="60" class="border mb-3 object-fit-cover rounded">
+                            <div>
+                                <div class="vote-container d-inline-flex border border-secondary rounded-1 overflow-hidden mb-3">
+                                    <div class="px-2 d-flex align-items-center fw-bold fs-5 text-secondary" id="answer-rating-${answer.id}">${answer.rating}</div>
+
+                                    <div class="vote-controls d-flex flex-column border-start border-secondary px-1 py-1">
+                                        ${voteControls}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col overflow-hidden d-flex flex-column">
+                            <p class="card-text mb-3">${escapeHtml(answer.text)}</p>
+                            <div class="mt-auto align-self-end d-flex align-items-center gap-3 small flex-wrap">
+                                ${markAcceptedBtn}
+                                <div class="text-muted">
+                                    answered just now by <span class="fw-bold text-dark">${escapeHtml(answer.author.nickname)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+
+        sub.on('publication', function (ctx) {
+            const answerData = ctx.data;
+
+            const html = createAnswerCardHTML(answerData);
+
+            const noAnswersMsg = document.getElementById('no-answers-msg');
+            if (noAnswersMsg) noAnswersMsg.style.display = 'none';
+
+            const answersList = document.getElementById('answers-list');
+            answersList.insertAdjacentHTML('afterbegin', html);
+
+            const countSpan = document.getElementById('answers-count');
+            if (countSpan) {
+                countSpan.innerText = (parseInt(countSpan.innerText) || 0) + 1;
+            }
+        });
+
+        sub.subscribe();
+        centrifuge.connect();
+    </script>
 {% endblock %}

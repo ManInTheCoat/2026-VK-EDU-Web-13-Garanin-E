@@ -42,8 +42,15 @@ class Command(BaseCommand):
         all_user_ids = list(User.objects.values_list('id', flat=True))
 
         self.stdout.write('Создание профилей...')
-        users_without_profiles = User.objects.filter(profile__isnull=True).values_list('id', flat=True)
-        profiles_to_create = [Profile(user_id=u_id) for u_id in users_without_profiles]
+        users_without_profiles = User.objects.filter(profile__isnull=True)
+
+        profiles_to_create = [
+            Profile(
+                user_id=u.id,
+                nickname=u.username
+            )
+            for u in users_without_profiles
+        ]
         Profile.objects.bulk_create(profiles_to_create, batch_size=BATCH_SIZE_LIGHT)
 
         self.stdout.write('Создание тегов...')

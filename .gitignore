@@ -213,3 +213,6 @@ __marimo__/
 
 # Мусорные файлы ОС
 .DS_Store
+
+# Centrifugo config
+centrifugo.json

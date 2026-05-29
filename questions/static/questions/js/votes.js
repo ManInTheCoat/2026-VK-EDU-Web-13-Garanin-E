@@ -66,9 +66,9 @@ $(function() {
         const voteType = btn.data('type');
 
         $.ajax({
-            url: '/ajax/like-question/',
+            url: `/ajax/question/${questionId}/like/`,
             method: 'POST',
-            data: { 'question_id': questionId, 'type': voteType }
+            data: { 'type': voteType }
         })
         .done(function(response) {
             updateVoteUI(btn, response.vote, response.rating);
@@ -93,9 +93,9 @@ $(function() {
         const voteType = btn.data('type');
 
         $.ajax({
-            url: '/ajax/like-answer/',
+            url: `/ajax/answer/${answerId}/like/`,
             method: 'POST',
-            data: { 'answer_id': answerId, 'type': voteType }
+            data: { 'type': voteType }
         })
         .done(function(response) {
             updateVoteUI(btn, response.vote, response.rating);
@@ -120,9 +120,8 @@ $(function() {
         const answerId = btn.data('answer-id');
 
         $.ajax({
-            url: '/ajax/mark-correct/',
+            url: `/ajax/question/${questionId}/answer/${answerId}/correct/`,
             method: 'POST',
-            data: { 'question_id': questionId, 'answer_id': answerId }
         })
         .done(function(response) {
             const allBtns = $('.correct-answer-btn[data-question-id="' + questionId + '"]');
@@ -138,7 +137,6 @@ $(function() {
         })
         .fail(function(xhr) {
             if (xhr.status === 401) window.location.href = '/core/login/';
-            else if (xhr.status === 403) alert("Только автор вопроса может отмечать правильный ответ!");
             else showErrorToast(xhr.responseJSON?.error || "Произошла ошибка");
         })
         .always(function() {

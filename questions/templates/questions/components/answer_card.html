@@ -6,10 +6,16 @@
         <div class="row flex-nowrap">
 
             <div class="col-auto text-center pe-2 pe-md-3">
-                <img src="{{ answer.author.profile.get_avatar }}" alt="Avatar" width="60" height="60"
-                    class="border mb-3 object-fit-cover rounded">
+                {% if answer.author %}
+                    <img src="{{ answer.author.profile.get_avatar }}" alt="Avatar" width="60" height="60"
+                        class="border mb-3 object-fit-cover rounded">
+                {% else %}
+                    <img src="{% static 'img/default_avatar.jpg' %}" alt="Avatar" width="60" height="60"
+                        class="border mb-3 object-fit-cover rounded">
+                {% endif %}
+
                 <div>
-                    {% get_answer_vote request.user answer as vote_state %}
+                    {% get_answer_vote answer_likes_map answer as vote_state %}
 
                     <div class="vote-container d-inline-flex border {% if vote_state == 'like' %}border-success{% elif vote_state == 'dislike' %}border-danger{% else %}border-secondary{% endif %} rounded-1 overflow-hidden mb-3">
                         <div class="px-2 d-flex align-items-center fw-bold fs-5 {% if vote_state == 'like' %}text-success{% elif vote_state == 'dislike' %}text-danger{% else %}text-secondary{% endif %}" id="answer-rating-{{ answer.id }}">{{ answer.rating|default:"0" }}</div>
@@ -46,7 +52,14 @@
                     {% endif %}
 
                     <div class="text-muted" title="{{ answer.created_at|date:'d.m.Y H:i:s' }}">
-                        answered {% language 'en' %}{{ answer.created_at|timesince }}{% endlanguage %} ago by <span class="fw-bold text-dark">{{ answer.author.profile.nickname|default:answer.author.username }}</span>
+                        answered {% language 'en' %}{{ answer.created_at|timesince }}{% endlanguage %} ago by
+                        <span class="fw-bold text-dark">
+                            {% if answer.author %}
+                                {{ answer.author.profile.nickname|default:answer.author.username }}
+                            {% else %}
+                                Deleted user
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
             </div>

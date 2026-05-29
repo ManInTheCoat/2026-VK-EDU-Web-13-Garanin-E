@@ -1,7 +1,10 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.urls import reverse
 from questions.managers import TagManager, QuestionManager
+
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVector
 
 class DefaultModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='Дата создания')
@@ -40,6 +43,10 @@ class Question(DefaultModel):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['-rating', '-created_at']),
+            GinIndex(
+                SearchVector('title', 'text', config='english'),
+                name='question_search_idx'
+            )
         ]
 
     def __str__(self):
@@ -47,6 +54,18 @@ class Question(DefaultModel):
 
     def get_absolute_url(self):
         return reverse('question', kwargs={'question_id': self.pk})
+
+    def sync_answers_count(self):
+        actual_count = self.answers.filter(is_active=True).count()
+        self.answers_count = actual_count
+        self.save(update_fields=["answers_count"])
+
+    def sync_rating(self):
+        likes = self.likes.filter(is_like=True, is_active=True).count()
+        dislikes = self.likes.filter(is_like=False, is_active=True).count()
+        self.rating = likes - dislikes
+        self.save(update_fields=['rating'])
+
 
 class Answer(DefaultModel):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers', verbose_name='Вопрос')
@@ -62,6 +81,30 @@ class Answer(DefaultModel):
 
     def __str__(self):
         return f'Ответ на вопрос #{self.question_id} пользователя #{self.author_id}'
+
+    def sync_rating(self):
+        likes = self.likes.filter(is_like=True, is_active=True).count()
+        dislikes = self.likes.filter(is_like=False, is_active=True).count()
+        self.rating = likes - dislikes
+        self.save(update_fields=['rating'])
+
+    @transaction.atomic
+    def toggle_correct(self):
+        """
+        Устанавливает ответ как правильный
+        или снимает отметку, если ответ уже был правильным.
+        """
+        if self.is_correct:
+            self.is_correct = False
+            self.save(update_fields=["is_correct"])
+            return False
+
+        Answer.objects.filter(question_id=self.question_id, is_correct=True).update(is_correct=False)
+
+        self.is_correct = True
+        self.save(update_fields=["is_correct"])
+        return True
+
 
 class QuestionLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь')
