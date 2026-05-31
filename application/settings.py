@@ -68,9 +68,12 @@ if DEBUG:
     INSTALLED_APPS += ['debug_toolbar']
     MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
 
-    import socket
-    hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
-    INTERNAL_IPS = [ip[:-1] + '1' for ip in ips] + ['127.0.0.1']
+    def show_toolbar(request):
+        return True
+
+    DEBUG_TOOLBAR_CONFIG = {
+        'SHOW_TOOLBAR_CALLBACK': show_toolbar,
+    }
 
 ROOT_URLCONF = 'application.urls'
 
@@ -235,3 +238,7 @@ EMAIL_HOST = env.str("EMAIL_HOST", default="127.0.0.1")
 EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
 DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@niceanswer.local")
+
+# Настройки проксирования
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

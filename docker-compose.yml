@@ -35,12 +35,13 @@ services:
     web:
         build: .
         container_name: niceanswer_web
-        command: python manage.py runserver 0.0.0.0:8000
+        command: gunicorn -c gunicorn.conf.py
         volumes:
             - .:/app
             - ./media:/app/media
         ports:
           - "8000:8000"
+          - "8081:8081"
         env_file:
           - .env.docker
         depends_on:
@@ -75,6 +76,18 @@ services:
         depends_on:
             - db
             - redis
+
+    nginx:
+        image: nginx:alpine
+        container_name: niceanswer_nginx
+        ports:
+            - "80:80"
+        volumes:
+            - ./nginx.conf:/etc/nginx/nginx.conf:ro
+            - ./static:/app/static:ro
+            - ./media:/app/media:ro
+        depends_on:
+            - web
 
 volumes:
     postgres_data:

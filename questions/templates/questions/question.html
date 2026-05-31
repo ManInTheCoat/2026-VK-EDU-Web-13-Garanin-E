@@ -120,6 +120,17 @@
         </div>
     {% endif %}
 </div>
+
+<template id="vote-controls-template">
+    {% if user.is_authenticated %}
+        <a href="#" class="text-secondary text-decoration-none lh-1 answer-vote" data-id="__ANSWER_ID__" data-type="like" title="Like">&#9650;</a>
+        <a href="#" class="text-secondary text-decoration-none lh-1 answer-vote" data-id="__ANSWER_ID__" data-type="dislike" title="Dislike">&#9660;</a>
+    {% else %}
+        <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9650;</span>
+        <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9660;</span>
+    {% endif %}
+</template>
+
 {% endblock %}
 
 {% block scripts %}
@@ -128,9 +139,6 @@
     <script src="{% static 'questions/js/votes.js' %}"></script>
     <script src="{% static 'questions/js/centrifuge.js' %}"></script>
 
-    {{ user.id|json_script:"user-id" }}
-    {{ user.is_authenticated|json_script:"is-auth" }}
-
     <script>
         const centrifuge = new Centrifuge("{{ ws_url }}", {
             token: "{{ centrifugo_token }}"
@@ -138,8 +146,8 @@
 
         const sub = centrifuge.newSubscription("questions:{{ question.id }}");
 
-        const currentUserId = JSON.parse(document.getElementById('user-id').textContent);
-        const isAuthenticated = JSON.parse(document.getElementById('is-auth').textContent);
+        const currentUserId = parseInt("{{ user.id }}") || null;
+        const isAuthenticated = "{{ user.is_authenticated }}" === "True";
 
         function escapeHtml(text) {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
@@ -160,18 +168,8 @@
                 `;
             }
 
-            let voteControls = '';
-            if (isAuthenticated) {
-                voteControls = `
-                    <a href="#" class="text-secondary text-decoration-none lh-1 answer-vote" data-id="${answer.id}" data-type="like" title="Like">&#9650;</a>
-                    <a href="#" class="text-secondary text-decoration-none lh-1 answer-vote" data-id="${answer.id}" data-type="dislike" title="Dislike">&#9660;</a>
-                `;
-            } else {
-                voteControls = `
-                    <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9650;</span>
-                    <span class="text-secondary lh-1 opacity-50" title="Войдите, чтобы оценить" style="cursor: not-allowed;">&#9660;</span>
-                `;
-            }
+            const templateHtml = document.getElementById('vote-controls-template').innerHTML;
+            const voteControls = templateHtml.replace(/__ANSWER_ID__/g, answer.id);
 
             return `
             <div class="card mb-3 shadow-sm border-0 bg-white" id="answer-${answer.id}">
